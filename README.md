@@ -2,6 +2,9 @@
 
 ## Updated local machine deployment guide
 
+**0. Use Git Bash or other Unix-like terminal for Windows users.**
+
+
 **1. Clone the Repository:**
 
 ```bash
