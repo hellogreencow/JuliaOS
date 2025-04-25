@@ -24,7 +24,20 @@ const dotenv = require('dotenv');
 
 // Update paths to point to the correct locations
 const { JuliaBridge } = require('../../julia-bridge/dist/index');
-const { WalletManager } = require('../../wallets/dist/index');
+// placeholder for later
+let walletManager;
+
+/** 
+ * 1) Load the ESM WalletManager class  
+ * 2) Instantiate it  
+ */
+(async () => {
+    const { WalletManager } = await import('../../wallets/src/index.js');
+    walletManager = new WalletManager(/* optional config */);
+    console.log('WalletManager is ready:', walletManager);
+})();
+
+
 const { v4: uuidv4 } = require('uuid');
 const { ethers } = require('ethers');
 
@@ -175,8 +188,6 @@ const juliaBridge = new EnhancedJuliaBridge(juliaBridgeRaw);
     });
 })();
 
-// Initialize WalletManager
-const walletManager = new WalletManager();
 
 // Create common dependencies for all menus
 const menuDeps = {
@@ -193,7 +204,7 @@ const menuModules = {
     agentManagement: require('./agent_management_menu'),
     swarmManagement: require('./swarm_management_menu'),
     walletManagement: require('./wallet_management_menu'),
-    apiKeys: require('./api_keys_menu'),
+    apiKeys: require('./api_access_codes_menu'),
     systemConfig: require('./system_config_menu'),
     performanceMetrics: require('./performance_metrics_menu'),
     helpDocumentation: require('./help_documentation_menu'),
@@ -3727,6 +3738,8 @@ async function main() {
 
         // Run initial system checks
         await runAllSystemChecks();
+
+        // await setupWalletManager(); // Initialize wallet manager
 
         // Update menuDeps with initialized juliaBridge
         menuDeps.juliaBridge = juliaBridge;

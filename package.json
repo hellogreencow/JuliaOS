@@ -12,6 +12,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "interactive-cli": "node scripts/interactive.cjs",
     "test": "jest --config=config/javascript/jest.config.js",
     "test:unit": "jest --config=config/javascript/jest.config.js --testPathPattern=tests/unit",
     "test:integration": "jest --config=config/javascript/jest.config.js --testPathPattern=tests/integration",

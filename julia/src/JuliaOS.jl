@@ -115,7 +115,7 @@ include("swarm/algorithms/DEPSO.jl")
 using .Swarms
 
 # Include command handlers (after all modules are loaded)
-include("command_handler.jl")
+# include("command_handler.jl")
 include("api/rest/handlers/CommandHandler.jl")
 include("api/rest/handlers/agent_commands.jl")
 include("api/rest/handlers/blockchain_commands.jl")

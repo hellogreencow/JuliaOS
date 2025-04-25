@@ -9,7 +9,7 @@ import * as os from 'os';
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import fetch from 'node-fetch';
+// import fetch from 'node-fetch';
 import { commands } from './cross-chain-commands';
 
 export interface JuliaBridgeConfig {

@@ -42,7 +42,7 @@ llm = [
     "replicate>=0.15.0",
 ]
 adk = [
-    "google-agent-sdk>=0.1.0",
+    "google-adk>=0.2.0",
 ]
 dev = [
     "pytest>=7.0.0",

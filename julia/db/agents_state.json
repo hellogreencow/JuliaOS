@@ -1,1 +1,1 @@
-{"agent-afDtjv4s":{"name":"Test Agent","status":1,"config":{"name":"Test Agent","type":"TRADING","abilities":[],"chains":[],"parameters":{},"llm_config":{"provider":"openai","model":"gpt-4o-mini","max_tokens":1024,"temperature":0.7},"memory_config":{"retention_policy":"lru","max_size":1000},"max_task_history":100},"id":"agent-afDtjv4s","created":"2025-04-22T17:21:52.390","memory":[],"type":1,"updated":"2025-04-22T17:21:52.390","skills":{}}}
+{}

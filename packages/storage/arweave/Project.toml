@@ -1,0 +1,4 @@
+name = "Storage"
+uuid = "67fe835a-adf4-800a-b54d-f8332838b0a3"
+version = "0.1.0"
+authors = ["JuliaOS Contributors <contributors@juliaos.org>"]

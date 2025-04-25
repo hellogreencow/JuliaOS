@@ -8,6 +8,8 @@ typechain-types/
 .turbo/
 node_modules/
 
+julia/Manifest.toml
+
 # Generated runtime directories
 cli/data/agent-memories/
 cli/data/logs/
