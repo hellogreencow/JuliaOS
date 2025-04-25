@@ -1717,11 +1717,9 @@ try
             end
         end)
 
-        # Start the server
-        @info "Starting simple HTTP server on $(config.server.host):$(config.server.port)"
-        # Convert hostname to IP if needed
-        host_ip = config.server.host == "localhost" ? "127.0.0.1" : config.server.host
-        server = HTTP.serve!(router, host_ip, config.server.port)
+        @info "Starting simple HTTP server on [::]:$(config.server.port) (IPv4 & IPv6)"
+        # Listen on both IPv4 & IPv6
+        server = HTTP.serve!(router, ip"::", config.server.port)
         @info "Simple HTTP server started successfully"
 
         # Keep the script running
