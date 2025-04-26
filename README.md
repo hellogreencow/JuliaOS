@@ -377,7 +377,10 @@ That's it! This will build and start JuliaOS in Docker containers. The CLI will 
     *Note: The `juliaos` package is NOT available on PyPI. You must install it using one of the methods above.*
 
 ## If the guides above dont work, please use this as a temporary workaround:
-    ### Updated local machine deployment guide
+## Updated local machine deployment guide
+
+**0. Use Git Bash or other Unix-like terminal for Windows users.**
+
 
 **1. Clone the Repository:**
 
