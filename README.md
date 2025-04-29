@@ -1545,85 +1545,105 @@ For more detailed examples and use cases, refer to the examples in each package'
 ## Architecture Overview
 
 ```mermaid
-graph TD
-    subgraph User Interaction
+%% Enhanced System Architecture Diagram with clearer definitions, grouping, and legend
+flowchart TD
+    %% User Interaction Layer
+    subgraph "User Interaction"
         direction LR
-        UserCLI[End User via CLI]
-        UserSDK[Developer via SDK]
+        U1([End User via CLI])
+        U2([Developer via SDK])
     end
 
-    subgraph Client Layer - TypeScript/Node.js
+    %% Client Layer - TypeScript/Node.js
+    subgraph "Client Layer \n(TypeScript / Node.js)"
         direction TB
-        CLI["scripts/interactive.cjs <br> (uses packages/cli)"]
-        Framework["Framework Packages <br> (packages/framework, /core, /wallets, etc.)"]
-        PyWrapper["Python Wrapper <br> (packages/python-wrapper)"]
-        JSBridge["JS Bridge Client <br> (packages/julia-bridge)"]
+        CLI["Interactive CLI Script\n(scripts/interactive.cjs)\nuses packages/cli"]
+        Framework["Framework Packages\n(packages/framework, core, wallets, etc.)"]
+        PyWrapper["Python Wrapper\n(packages/python-wrapper)"]
+        JSBridge["JS Bridge Client\n(packages/julia-bridge)"]
 
-        CLI --> Framework
-        UserSDK --> Framework
-        UserSDK --> PyWrapper
-        Framework --> JSBridge
-        PyWrapper --> JSBridge
+        CLI -->|"imports"| Framework
+        U2 -->|"calls API"| Framework
+        U2 -->|"calls"| PyWrapper
+        Framework -->|"bridges to"| JSBridge
+        PyWrapper -->|"bridges to"| JSBridge
     end
 
-    subgraph Communication Layer
+    %% Communication Layer
+    subgraph "Communication Layer\n(WebSocket / HTTP)"
         direction TB
-        BridgeComms["WebSocket/HTTP <br> (Port 8052)"]
+        BridgeComms["Port 8052\n(WebSocket / HTTP)"]
     end
 
-    subgraph Server Layer - Julia Backend
+    %% Server Layer - Julia Backend
+    subgraph "Server Layer \n(Julia Backend)"
         direction TB
-        JuliaServer["Julia Server <br> (julia_server.jl)"]
-        JuliaBridge["Julia Bridge Server <br> (src/Bridge.jl)"]
+        JuliaServer["Julia Server\n(julia_server.jl)"]
+        JuliaBridge["Julia Bridge Server\n(src/Bridge.jl)"]
 
-        subgraph Core Modules - julia/src
-            AgentSys["AgentSystem.jl"]
-            Swarms["Swarms.jl <br> (DE, PSO, GWO, ACO, GA, WOA)"]
-            SwarmMgr["SwarmManager.jl"]
-            Blockchain["Blockchain.jl (EVM)"]
-            DEX["DEX.jl (Uniswap V3)"]
-            Web3Store["Web3Storage.jl <br> (Ceramic, IPFS)"]
-            OpenAIAdapter["OpenAISwarmAdapter.jl"]
-            SecurityMgr["SecurityManager.jl"]
-            UserModules["UserModules.jl"]
+        subgraph "Core Modules (julia/src)"
+            direction TB
+            AS["AgentSystem.jl\n(Core orchestration)"]
+            SwarmAlg["Swarms.jl\n(DE, PSO, GWO, ACO, GA, WOA)"]
+            SwarmMgr["SwarmManager.jl\n(Execution & Scaling)"]
+            Blockchain["Blockchain.jl\n(EVM interactions)"]
+            DEX["DEX.jl\n(Uniswap V3 logic)"]
+            Web3Store["Web3Storage.jl\n(Ceramic, IPFS)"]
+            OpenAIAdapter["OpenAISwarmAdapter.jl\n(OpenAI API)"]
+            SecurityMgr["SecurityManager.jl\n(Auth & Policy)"]
+            UserModules["UserModules.jl\n(Custom logic)"]
         end
 
-        JuliaServer -- receives --> JuliaBridge
-        JuliaBridge -- dispatches to --> AgentSys
-        JuliaBridge -- dispatches to --> Swarms
-        JuliaBridge -- dispatches to --> SwarmMgr
-        JuliaBridge -- dispatches to --> Blockchain
-        JuliaBridge -- dispatches to --> DEX
-        JuliaBridge -- dispatches to --> Web3Store
-        JuliaBridge -- dispatches to --> OpenAIAdapter
+        JuliaServer -->|"receives"| JuliaBridge
+        JuliaBridge -->|"dispatch to"| AS
+        JuliaBridge --> SwarmAlg
+        JuliaBridge --> SwarmMgr
+        JuliaBridge --> Blockchain
+        JuliaBridge --> DEX
+        JuliaBridge --> Web3Store
+        JuliaBridge --> OpenAIAdapter
         SwarmMgr --> DEX
         SwarmMgr --> Blockchain
     end
 
-    subgraph External Services
+    %% External Services
+    subgraph "External Services"
         direction TB
-        RPC["Blockchain RPC Nodes <br> (e.g., Infura, Alchemy)"]
-        W3S["Web3.Storage API <br> (IPFS Pinning)"]
+        RPC["Blockchain RPC Nodes\n(e.g., Infura, Alchemy)"]
+        W3S["Web3.Storage API\n(IPFS Pinning)"]
         Ceramic["Ceramic Network Node"]
-        OpenAI["OpenAI API"]
+        OpenAIExt["OpenAI API"]
     end
 
-    UserCLI --> CLI
-
+    %% Connections
+    U1 --> CLI
     JSBridge -- "sends/receives" --> BridgeComms
     BridgeComms -- "sends/receives" --> JuliaServer
-
     Blockchain -- interacts with --> RPC
     Web3Store -- interacts with --> W3S
     Web3Store -- interacts with --> Ceramic
-    OpenAIAdapter -- interacts with --> OpenAI
+    OpenAIAdapter -- interacts with --> OpenAIExt
 
-    classDef client fill:#d4f4fa,stroke:#333,stroke-width:1px;
-    classDef server fill:#fad4d4,stroke:#333,stroke-width:1px;
-    classDef external fill:#lightgrey,stroke:#333,stroke-width:1px;
-    class CLI,Framework,PyWrapper,JSBridge client;
-    class JuliaServer,JuliaBridge,AgentSys,Swarms,SwarmMgr,Blockchain,DEX,Web3Store,OpenAIAdapter,SecurityMgr,UserModules server;
-    class RPC,W3S,Ceramic,OpenAI external;
+    %% Styling
+    classDef userLayer fill:#cdeaf2,stroke:#333,stroke-width:1px;
+    classDef clientLayer fill:#d4f4fa,stroke:#333,stroke-width:1px;
+    classDef commLayer fill:#fef4c1,stroke:#333,stroke-width:1px;
+    classDef serverLayer fill:#fad4d4,stroke:#333,stroke-width:1px;
+    classDef externalLayer fill:#d4f7d4,stroke:#333,stroke-width:1px;
+    class U1,U2 userLayer;
+    class CLI,Framework,PyWrapper,JSBridge clientLayer;
+    class BridgeComms commLayer;
+    class JuliaServer,JuliaBridge,AS,SwarmAlg,SwarmMgr,Blockchain,DEX,Web3Store,OpenAIAdapter,SecurityMgr,UserModules serverLayer;
+    class RPC,W3S,Ceramic,OpenAIExt externalLayer;
+
+    %% Legend
+    subgraph Legend
+      direction LR
+      L1["User Interaction"]:::userLayer --- L2["Client Layer"]:::clientLayer
+      L2 --- L3["Comm Layer"]:::commLayer
+      L3 --- L4["Server Layer"]:::serverLayer
+      L4 --- L5["External Services"]:::externalLayer
+    end
 ```
 
 **Architecture Notes:** The JuliaOS framework follows a client-server architecture with a modular design. The Julia backend (`julia/julia_server.jl`) runs as an HTTP server (default port 8052), handling core computations with a restructured architecture that provides clear separation of concerns. TypeScript/JavaScript clients, primarily the interactive CLI (`scripts/interactive.cjs`), connect to this server. The CLI utilizes framework packages (`packages/framework`, etc.) which in turn use the `packages/julia-bridge` to communicate with the backend server.
