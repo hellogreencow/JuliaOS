@@ -1636,8 +1636,6 @@ flowchart TD
     class BridgeComms commLayer;
     class JuliaServer,JuliaBridge,AS,SwarmAlg,SwarmMgr,Blockchain,DEX,Web3Store,OpenAIAdapter,SecurityMgr,UserModules serverLayer;
     class RPC,W3S,Ceramic,OpenAIExt externalLayer;
-    
-    end
 ```
 
 **Architecture Notes:** The JuliaOS framework follows a client-server architecture with a modular design. The Julia backend (`julia/julia_server.jl`) runs as an HTTP server (default port 8052), handling core computations with a restructured architecture that provides clear separation of concerns. TypeScript/JavaScript clients, primarily the interactive CLI (`scripts/interactive.cjs`), connect to this server. The CLI utilizes framework packages (`packages/framework`, etc.) which in turn use the `packages/julia-bridge` to communicate with the backend server.
