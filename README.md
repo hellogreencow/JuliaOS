@@ -1573,7 +1573,7 @@ flowchart TD
     %% Communication Layer
     subgraph "Communication Layer\n(WebSocket / HTTP)"
         direction TB
-        BridgeComms["Port 8052\n(WebSocket / HTTP)"]
+        BridgeComms["WebSocket / HTTP | Port 8052"]
     end
 
     %% Server Layer - Julia Backend
@@ -1596,13 +1596,13 @@ flowchart TD
         end
 
         JuliaServer -->|"receives"| JuliaBridge
-        JuliaBridge -->|"dispatch to"| AS
-        JuliaBridge --> SwarmAlg
-        JuliaBridge --> SwarmMgr
-        JuliaBridge --> Blockchain
-        JuliaBridge --> DEX
-        JuliaBridge --> Web3Store
-        JuliaBridge --> OpenAIAdapter
+        JuliaBridge -->|"dispatches to"| AS
+        JuliaBridge -->|"dispatches to"| SwarmAlg
+        JuliaBridge -->|"dispatches to"| SwarmMgr
+        JuliaBridge -->|"dispatches to"| Blockchain
+        JuliaBridge -->|"dispatches to"| DEX
+        JuliaBridge -->|"dispatches to"| Web3Store
+        JuliaBridge -->|"dispatches to"| OpenAIAdapter
         SwarmMgr --> DEX
         SwarmMgr --> Blockchain
     end
