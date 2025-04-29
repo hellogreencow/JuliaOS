@@ -1545,6 +1545,7 @@ For more detailed examples and use cases, refer to the examples in each package'
 ## Architecture Overview
 
 ```mermaid
+%%{init: {'theme': 'default'}}%%
 %% Enhanced System Architecture Diagram with clearer definitions, grouping, and legend
 flowchart TD
     %% User Interaction Layer
