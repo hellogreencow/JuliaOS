@@ -1636,14 +1636,7 @@ flowchart TD
     class BridgeComms commLayer;
     class JuliaServer,JuliaBridge,AS,SwarmAlg,SwarmMgr,Blockchain,DEX,Web3Store,OpenAIAdapter,SecurityMgr,UserModules serverLayer;
     class RPC,W3S,Ceramic,OpenAIExt externalLayer;
-
-    %% Legend
-    subgraph Legend
-      direction LR
-      L1["User Interaction"]:::userLayer --- L2["Client Layer"]:::clientLayer
-      L2 --- L3["Comm Layer"]:::commLayer
-      L3 --- L4["Server Layer"]:::serverLayer
-      L4 --- L5["External Services"]:::externalLayer
+    
     end
 ```
 
