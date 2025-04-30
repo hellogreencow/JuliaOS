@@ -1,5 +1,6 @@
 # JuliaOS Open Source AI Agent & Swarm Framework
 
+
 *joo-LEE-uh-oh-ESS* /ˈdʒuː.li.ə.oʊ.ɛs/
 
 **Noun**
@@ -288,6 +289,93 @@ The `.gitignore` file is configured to exclude sensitive files including:
 - Wallet data in `data/wallets/`
 - Secret keys in `data/secrets/`
 - Any files matching patterns like `*wallet*.json`, `*key*`, etc.
+
+
+## Updated local machine deployment and running guide
+
+**0. Use Git Bash or other Unix-like terminal for Windows users.**
+
+
+**1. Clone the Repository:**
+
+```bash
+git clone --single-branch --branch 23-04-max-fix https://github.com/Juliaoscode/JuliaOS.git
+cd JuliaOS
+```
+
+**2. Install Node.js Dependencies: This installs dependencies for the CLI, framework packages, bridge, etc.**
+
+```bash
+npm install --force
+```
+
+**3. Install Julia Dependencies: This installs the necessary Julia packages for the backend server.**
+
+```bash
+# Navigate to the julia directory
+cd julia
+
+# Activate the Julia environment and install packages
+# This might take some time on the first run as it downloads and precompiles packages
+julia -e 'using Pkg; Pkg.activate("."); Pkg.update(); Pkg.instantiate()'
+
+# Navigate back to the root directory
+cd ..
+```
+
+_Troubleshooting: Ensure Julia is installed and in your PATH. If Pkg.instantiate() fails, check your internet connection and Julia version compatibility (1.10+). Sometimes running julia -e 'using Pkg; Pkg.update()' inside the julia directory before instantiate can resolve issues._
+
+
+**4. Install Python Dependencies (Optional): If you want to use the Python wrapper, install the necessary Python packages.**
+
+```python
+# Option 1: Install directly from GitHub (recommended)
+pip install git+https://github.com/Juliaoscode/JuliaOS.git#subdirectory=packages/python-wrapper
+
+# Option 2: Install with LLM support
+pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=juliaos[llm]&subdirectory=packages/python-wrapper"
+
+# Option 3: Install with Google ADK support
+pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=juliaos[adk]&subdirectory=packages/python-wrapper"
+```
+
+===
+
+#### Option 1: Start the Julia Server and Run the Interactive CLI in Two Separate Terminals:
+
+Alternatively, you can use the traditional two-terminal approach:
+
+**Step 0: Run build command**
+```bash
+npm run build
+```
+
+**Terminal 1: Start the Julia Server**
+```bash
+# Navigate to the julia directory
+cd julia/server
+
+# Activate the Julia environment and install packages
+# This might take some time on the first run as it downloads and precompiles packages
+julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()'
+
+# Run the server script
+julia --project=. julia_server.jl
+```
+*Wait until you see messages indicating the server has started (e.g., "Server started successfully on localhost:8052"). The server will initialize all modules and display their status.*
+
+**Terminal 2: Run the Interactive CLI**
+```bash
+# Ensure you are in the project root directory (JuliaOS)
+# If not, cd back to it
+
+# Run the interactive CLI script
+node scripts/interactive.cjs
+```
+*You should now see the JuliaOS CLI menu with options for Agent Management, Swarm Intelligence, Blockchain Operations, and more.*
+
+===
+
 
 ## Quick Start
 
@@ -1457,85 +1545,97 @@ For more detailed examples and use cases, refer to the examples in each package'
 ## Architecture Overview
 
 ```mermaid
-graph TD
-    subgraph User Interaction
+%%{init: {'theme': 'default'}}%%
+%% Enhanced System Architecture Diagram with clearer definitions, grouping, and legend
+flowchart TD
+    %% User Interaction Layer
+    subgraph "User Interaction"
         direction LR
-        UserCLI[End User via CLI]
-        UserSDK[Developer via SDK]
+        U1([End User via CLI])
+        U2([Developer via SDK])
     end
 
-    subgraph Client Layer - TypeScript/Node.js
+    %% Client Layer - TypeScript/Node.js
+    subgraph "Client Layer \n(TypeScript / Node.js)"
         direction TB
-        CLI["scripts/interactive.cjs <br> (uses packages/cli)"]
-        Framework["Framework Packages <br> (packages/framework, /core, /wallets, etc.)"]
-        PyWrapper["Python Wrapper <br> (packages/python-wrapper)"]
-        JSBridge["JS Bridge Client <br> (packages/julia-bridge)"]
+        CLI["Interactive CLI Script\n(scripts/interactive.cjs)\nuses packages/cli"]
+        Framework["Framework Packages\n(packages/framework, core, wallets, etc.)"]
+        PyWrapper["Python Wrapper\n(packages/python-wrapper)"]
+        JSBridge["JS Bridge Client\n(packages/julia-bridge)"]
 
-        CLI --> Framework
-        UserSDK --> Framework
-        UserSDK --> PyWrapper
-        Framework --> JSBridge
-        PyWrapper --> JSBridge
+        CLI -->|"imports"| Framework
+        U2 -->|"calls API"| Framework
+        U2 -->|"calls"| PyWrapper
+        Framework -->|"bridges to"| JSBridge
+        PyWrapper -->|"bridges to"| JSBridge
     end
 
-    subgraph Communication Layer
+    %% Communication Layer
+    subgraph "Communication Layer\n(WebSocket / HTTP)"
         direction TB
-        BridgeComms["WebSocket/HTTP <br> (Port 8052)"]
+        BridgeComms["WebSocket / HTTP | Port 8052"]
     end
 
-    subgraph Server Layer - Julia Backend
+    %% Server Layer - Julia Backend
+    subgraph "Server Layer \n(Julia Backend)"
         direction TB
-        JuliaServer["Julia Server <br> (julia_server.jl)"]
-        JuliaBridge["Julia Bridge Server <br> (src/Bridge.jl)"]
+        JuliaServer["Julia Server\n(julia_server.jl)"]
+        JuliaBridge["Julia Bridge Server\n(src/Bridge.jl)"]
 
-        subgraph Core Modules - julia/src
-            AgentSys["AgentSystem.jl"]
-            Swarms["Swarms.jl <br> (DE, PSO, GWO, ACO, GA, WOA)"]
-            SwarmMgr["SwarmManager.jl"]
-            Blockchain["Blockchain.jl (EVM)"]
-            DEX["DEX.jl (Uniswap V3)"]
-            Web3Store["Web3Storage.jl <br> (Ceramic, IPFS)"]
-            OpenAIAdapter["OpenAISwarmAdapter.jl"]
-            SecurityMgr["SecurityManager.jl"]
-            UserModules["UserModules.jl"]
+        subgraph "Core Modules (julia/src)"
+            direction TB
+            AS["AgentSystem.jl\n(Core orchestration)"]
+            SwarmAlg["Swarms.jl\n(DE, PSO, GWO, ACO, GA, WOA)"]
+            SwarmMgr["SwarmManager.jl\n(Execution & Scaling)"]
+            Blockchain["Blockchain.jl\n(EVM interactions)"]
+            DEX["DEX.jl\n(Uniswap V3 logic)"]
+            Web3Store["Web3Storage.jl\n(Ceramic, IPFS)"]
+            OpenAIAdapter["OpenAISwarmAdapter.jl\n(OpenAI API)"]
+            SecurityMgr["SecurityManager.jl\n(Auth & Policy)"]
+            UserModules["UserModules.jl\n(Custom logic)"]
         end
 
-        JuliaServer -- receives --> JuliaBridge
-        JuliaBridge -- dispatches to --> AgentSys
-        JuliaBridge -- dispatches to --> Swarms
-        JuliaBridge -- dispatches to --> SwarmMgr
-        JuliaBridge -- dispatches to --> Blockchain
-        JuliaBridge -- dispatches to --> DEX
-        JuliaBridge -- dispatches to --> Web3Store
-        JuliaBridge -- dispatches to --> OpenAIAdapter
+        JuliaServer -->|"receives"| JuliaBridge
+        JuliaBridge -->|"dispatches to"| AS
+        JuliaBridge -->|"dispatches to"| SwarmAlg
+        JuliaBridge -->|"dispatches to"| SwarmMgr
+        JuliaBridge -->|"dispatches to"| Blockchain
+        JuliaBridge -->|"dispatches to"| DEX
+        JuliaBridge -->|"dispatches to"| Web3Store
+        JuliaBridge -->|"dispatches to"| OpenAIAdapter
         SwarmMgr --> DEX
         SwarmMgr --> Blockchain
     end
 
-    subgraph External Services
+    %% External Services
+    subgraph "External Services"
         direction TB
-        RPC["Blockchain RPC Nodes <br> (e.g., Infura, Alchemy)"]
-        W3S["Web3.Storage API <br> (IPFS Pinning)"]
+        RPC["Blockchain RPC Nodes\n(e.g., Infura, Alchemy)"]
+        W3S["Web3.Storage API\n(IPFS Pinning)"]
         Ceramic["Ceramic Network Node"]
-        OpenAI["OpenAI API"]
+        OpenAIExt["OpenAI API"]
     end
 
-    UserCLI --> CLI
-
+    %% Connections
+    U1 --> CLI
     JSBridge -- "sends/receives" --> BridgeComms
     BridgeComms -- "sends/receives" --> JuliaServer
-
     Blockchain -- interacts with --> RPC
     Web3Store -- interacts with --> W3S
     Web3Store -- interacts with --> Ceramic
-    OpenAIAdapter -- interacts with --> OpenAI
+    OpenAIAdapter -- interacts with --> OpenAIExt
 
-    classDef client fill:#d4f4fa,stroke:#333,stroke-width:1px;
-    classDef server fill:#fad4d4,stroke:#333,stroke-width:1px;
-    classDef external fill:#lightgrey,stroke:#333,stroke-width:1px;
-    class CLI,Framework,PyWrapper,JSBridge client;
-    class JuliaServer,JuliaBridge,AgentSys,Swarms,SwarmMgr,Blockchain,DEX,Web3Store,OpenAIAdapter,SecurityMgr,UserModules server;
-    class RPC,W3S,Ceramic,OpenAI external;
+    %% Styling
+    classDef userLayer fill:#cdeaf2,stroke:#333,stroke-width:1px;
+    classDef clientLayer fill:#d4f4fa,stroke:#333,stroke-width:1px;
+    classDef commLayer fill:#fef4c1,stroke:#333,stroke-width:1px;
+    classDef serverLayer fill:#fad4d4,stroke:#333,stroke-width:1px;
+    classDef externalLayer fill:#d4f7d4,stroke:#333,stroke-width:1px;
+    class U1,U2 userLayer;
+    class CLI,Framework,PyWrapper,JSBridge clientLayer;
+    class BridgeComms commLayer;
+    class JuliaServer,JuliaBridge,AS,SwarmAlg,SwarmMgr,Blockchain,DEX,Web3Store,OpenAIAdapter,SecurityMgr,UserModules serverLayer;
+    class RPC,W3S,Ceramic,OpenAIExt externalLayer;
 ```
 
 **Architecture Notes:** The JuliaOS framework follows a client-server architecture with a modular design. The Julia backend (`julia/julia_server.jl`) runs as an HTTP server (default port 8052), handling core computations with a restructured architecture that provides clear separation of concerns. TypeScript/JavaScript clients, primarily the interactive CLI (`scripts/interactive.cjs`), connect to this server. The CLI utilizes framework packages (`packages/framework`, etc.) which in turn use the `packages/julia-bridge` to communicate with the backend server.
