@@ -38,9 +38,9 @@ JuliaOS is a comprehensive framework for building decentralized applications (DA
 - 🔵 [API]([./docs/gitbook/technical/api/julia.md](https://app.gitbook.com/o/exUlED0J6dNbtzZEx1Nf/s/gTJWi5eSEdsS1fPoRXqT/~/changes/19/api-documentation/api-reference)): Julia backend API reference
 
 
-## Updated local machine deployment and running guide
+## Local machine deployment and running guide
 
-**0. Use Git Bash or other Unix-like terminal for Windows users.**
+** Use Git Bash or other Unix-like terminal for Windows users.**
 
 
 **1. Clone the Repository:**
@@ -86,13 +86,10 @@ pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=ju
 pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=juliaos[adk]&subdirectory=packages/python-wrapper"
 ```
 
-===
 
-#### Option 1: Start the Julia Server and Run the Interactive CLI in Two Separate Terminals:
+#### Alternative: Start the Julia Server and Run the Interactive CLI in Two Separate Terminals:
 
-Alternatively, you can use the traditional two-terminal approach:
-
-**Step 0: Run build command**
+** Run build command**
 ```bash
 npm run build
 ```
@@ -121,7 +118,6 @@ node scripts/interactive.cjs
 ```
 *You should now see the JuliaOS CLI menu with options for Agent Management, Swarm Intelligence, Blockchain Operations, and more.*
 
-===
 
 
 ## Quick Start
@@ -211,90 +207,6 @@ That's it! This will build and start JuliaOS in Docker containers. The CLI will 
     ```
     *Note: The `juliaos` package is NOT available on PyPI. You must install it using one of the methods above.*
 
-## If the guides above dont work, please use this as a temporary workaround:
-## Updated local machine deployment guide
-
-**0. Use Git Bash or other Unix-like terminal for Windows users.**
-
-
-**1. Clone the Repository:**
-
-```bash
-git clone --single-branch --branch 23-04-max-fix https://github.com/Juliaoscode/JuliaOS.git
-cd JuliaOS
-```
-
-**2. Install Node.js Dependencies: This installs dependencies for the CLI, framework packages, bridge, etc.**
-
-```bash
-npm install --force
-```
-
-**3. Install Julia Dependencies: This installs the necessary Julia packages for the backend server.**
-
-```bash
-# Navigate to the julia directory
-cd julia
-
-# Activate the Julia environment and install packages
-# This might take some time on the first run as it downloads and precompiles packages
-julia -e 'using Pkg; Pkg.activate("."); Pkg.update(); Pkg.instantiate()'
-
-# Navigate back to the root directory
-cd ..
-```
-
-_Troubleshooting: Ensure Julia is installed and in your PATH. If Pkg.instantiate() fails, check your internet connection and Julia version compatibility (1.10+). Sometimes running julia -e 'using Pkg; Pkg.update()' inside the julia directory before instantiate can resolve issues._
-
-
-**4. Install Python Dependencies (Optional): If you want to use the Python wrapper, install the necessary Python packages.**
-
-```python
-# Option 1: Install directly from GitHub (recommended)
-pip install git+https://github.com/Juliaoscode/JuliaOS.git#subdirectory=packages/python-wrapper
-
-# Option 2: Install with LLM support
-pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=juliaos[llm]&subdirectory=packages/python-wrapper"
-
-# Option 3: Install with Google ADK support
-pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=juliaos[adk]&subdirectory=packages/python-wrapper"
-```
-
-===
-
-#### Option 1: Start the Julia Server and Run the Interactive CLI in Two Separate Terminals:
-
-Alternatively, you can use the traditional two-terminal approach:
-
-**Step 0: Run build command**
-```bash
-npm run build
-```
-
-**Terminal 1: Start the Julia Server**
-```bash
-# Navigate to the julia directory
-cd julia/server
-
-# Activate the Julia environment and install packages
-# This might take some time on the first run as it downloads and precompiles packages
-julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()'
-
-# Run the server script
-julia --project=. julia_server.jl
-```
-*Wait until you see messages indicating the server has started (e.g., "Server started successfully on localhost:8052"). The server will initialize all modules and display their status.*
-
-**Terminal 2: Run the Interactive CLI**
-```bash
-# Ensure you are in the project root directory (JuliaOS)
-# If not, cd back to it
-
-# Run the interactive CLI script
-node scripts/interactive.cjs
-```
-*You should now see the JuliaOS CLI menu with options for Agent Management, Swarm Intelligence, Blockchain Operations, and more.*
-
 
     *Troubleshooting Direct GitHub Install (Options 1-3):*
     - Ensure Python 3.8+ and `pip` are installed and in your PATH.
@@ -349,133 +261,6 @@ node scripts/interactive.cjs
     ```bash
     npm run build
     ```
-
-### Running JuliaOS
-
-#### Option 1: Using Docker (Recommended)
-
-The easiest way to run JuliaOS is using Docker:
-
-```bash
-# Quick start with a single command
-./run-juliaos.sh
-```
-
-Or for more control:
-
-```bash
-# Build the Docker images
-./scripts/run-docker.sh build
-
-# Start both server and CLI
-./scripts/run-docker.sh start
-
-# Or start them separately
-./scripts/run-docker.sh server
-./scripts/run-docker.sh cli
-```
-
-This approach packages all dependencies in Docker containers, making it easy to run on any system that supports Docker.
-
-#### Option 2: Using the Simplified Startup Script
-
-If you've installed the dependencies manually, we provide a simplified startup script that handles everything for you:
-
-```bash
-# Make the script executable (first time only)
-chmod +x scripts/run-cli.sh
-
-# Run the script
-./scripts/run-cli.sh
-```
-
-This script will:
-1. Check if the Julia server is running
-2. Start the Julia server if it's not running
-3. If the Julia server fails to start, it will start a mock server instead
-4. Launch the interactive CLI
-
-#### Option 3: Manual Setup (Two Terminals)
-
-Alternatively, you can use the traditional two-terminal approach:
-
-**Step 0: Run build command**
-```bash
-npm run build
-```
-
-**Terminal 1: Start the Julia Server**
-```bash
-# Navigate to the julia directory
-cd julia/server
-
-# Activate the Julia environment and install packages
-# This might take some time on the first run as it downloads and precompiles packages
-julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()'
-
-# Run the server script
-julia --project=. julia_server.jl
-```
-*Wait until you see messages indicating the server has started (e.g., "Server started successfully on localhost:8052"). The server will initialize all modules and display their status.*
-
-**Terminal 2: Run the Interactive CLI**
-```bash
-# Ensure you are in the project root directory (JuliaOS)
-# If not, cd back to it
-
-# Run the interactive CLI script
-node scripts/interactive.cjs
-```
-*You should now see the JuliaOS CLI menu with options for Agent Management, Swarm Intelligence, Blockchain Operations, and more.*
-
-#### Option 4: Using the Mock Server
-
-If you're having trouble with the Julia server or just want to test the CLI functionality without Julia:
-
-```bash
-# Start the mock server
-node packages/cli/mock_server.js
-
-# In another terminal, run the CLI
-node packages/cli/interactive.cjs
-```
-
-The mock server provides simulated responses for all API endpoints, allowing you to test the CLI functionality without requiring Julia to be installed.
-
-#### Option 4: Using the Python Wrapper
-
-```python
-# Create a Python script (e.g., example.py) with the following content:
-import asyncio
-from juliaos import JuliaOS
-
-async def main():
-    # Initialize JuliaOS
-    juliaos_client = JuliaOS(host="localhost", port=8052)
-    await juliaos_client.connect()
-
-    # Check health
-    health = await juliaos_client.check_health()
-    print(f"JuliaOS Health: {health['status']}")
-
-    # Create an agent
-    agent = await juliaos_client.agents.create_agent(
-        name="TestAgent",
-        agent_type="trading",
-        config={"risk_level": "medium"}
-    )
-    print(f"Created agent: {agent['name']} (ID: {agent['id']})")
-
-    # Clean up
-    await juliaos_client.disconnect()
-
-# Run the async function
-asyncio.run(main())
-
-# Run the script
-# python example.py
-```
-*This will connect to the running Julia server and interact with it through the Python wrapper.*
 
 
 ## Architecture Overview
