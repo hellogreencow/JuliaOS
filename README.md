@@ -12,18 +12,18 @@
 
 JuliaOS is a comprehensive framework for building decentralized applications (DApps) with a focus on agent-based architectures, swarm intelligence, and cross-chain operations. It provides both a CLI interface for quick deployment and a framework API for custom implementations. By leveraging AI-powered agents and swarm optimization, JuliaOS enables sophisticated strategies across multiple blockchains.
 
-## 📚 Documentation
+## Documentation
 
 - 📖 [Overview](./docs/gitbook/technical/features/README.md): Project overview and vision
 - 🤝 [Partners](./docs/gitbook/technical/features/agents.md): Partners & Ecosystems
   
-### 🔧 Technical
+### Technical
 
 - 🚀 [Getting Started](./docs/gitbook/technical/features/agents.md): Quick start guide
 - 🏗️ [Architecture](./docs/gitbook/technical/features/swarms.md): Architecture overview
 - 🧑‍💻 [Developer Hub](./docs/gitbook/technical/features/agents.md): For the developer
     
-### ✨ Features
+### Features
 
 - 🌟 [Core Features & Concepts](./docs/gitbook/technical/features/swarms.md): Important features and fundamentals
 - 🤖 [Agents](./docs/gitbook/technical/features/swarms.md): Everything about Agents
@@ -35,12 +35,7 @@ JuliaOS is a comprehensive framework for building decentralized applications (DA
 - 💾 [Storage](./docs/gitbook/technical/features/swarms.md): Different types of storage
 - 👛 [Wallets](./docs/gitbook/technical/features/agents.md): Supported wallets
 - 🚩 [Use Cases](./docs/gitbook/technical/features/agents.md): All use cases and examples
-
-### 📡 API Reference
-
-- 🔵 [Julia API](./docs/gitbook/technical/api/julia.md): Julia backend API reference
-- 🟦 [TypeScript API](./docs/gitbook/technical/api/typescript.md): TypeScript framework API reference
-- 🐍 [Python API](./docs/gitbook/technical/api/python.md): Python wrapper API reference
+- 🔵 [API]([./docs/gitbook/technical/api/julia.md](https://app.gitbook.com/o/exUlED0J6dNbtzZEx1Nf/s/gTJWi5eSEdsS1fPoRXqT/~/changes/19/api-documentation/api-reference)): Julia backend API reference
 
 
 ## Updated local machine deployment and running guide
