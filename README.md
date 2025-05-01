@@ -38,87 +38,6 @@ JuliaOS is a comprehensive framework for building decentralized applications (DA
 - 🔵 [API]([./docs/gitbook/technical/api/julia.md](https://app.gitbook.com/o/exUlED0J6dNbtzZEx1Nf/s/gTJWi5eSEdsS1fPoRXqT/~/changes/19/api-documentation/api-reference)): Julia backend API reference
 
 
-## Local machine deployment and running guide
-
-** Use Git Bash or other Unix-like terminal for Windows users.**
-
-
-**1. Clone the Repository:**
-
-```bash
-git clone --single-branch --branch 23-04-max-fix https://github.com/Juliaoscode/JuliaOS.git
-cd JuliaOS
-```
-
-**2. Install Node.js Dependencies: This installs dependencies for the CLI, framework packages, bridge, etc.**
-
-```bash
-npm install --force
-```
-
-**3. Install Julia Dependencies: This installs the necessary Julia packages for the backend server.**
-
-```bash
-# Navigate to the julia directory
-cd julia
-
-# Activate the Julia environment and install packages
-# This might take some time on the first run as it downloads and precompiles packages
-julia -e 'using Pkg; Pkg.activate("."); Pkg.update(); Pkg.instantiate()'
-
-# Navigate back to the root directory
-cd ..
-```
-
-_Troubleshooting: Ensure Julia is installed and in your PATH. If Pkg.instantiate() fails, check your internet connection and Julia version compatibility (1.10+). Sometimes running julia -e 'using Pkg; Pkg.update()' inside the julia directory before instantiate can resolve issues._
-
-
-**4. Install Python Dependencies (Optional): If you want to use the Python wrapper, install the necessary Python packages.**
-
-```python
-# Option 1: Install directly from GitHub (recommended)
-pip install git+https://github.com/Juliaoscode/JuliaOS.git#subdirectory=packages/python-wrapper
-
-# Option 2: Install with LLM support
-pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=juliaos[llm]&subdirectory=packages/python-wrapper"
-
-# Option 3: Install with Google ADK support
-pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=juliaos[adk]&subdirectory=packages/python-wrapper"
-```
-
-
-#### Alternative: Start the Julia Server and Run the Interactive CLI in Two Separate Terminals:
-
-** Run build command**
-```bash
-npm run build
-```
-
-**Terminal 1: Start the Julia Server**
-```bash
-# Navigate to the julia directory
-cd julia/server
-
-# Activate the Julia environment and install packages
-# This might take some time on the first run as it downloads and precompiles packages
-julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()'
-
-# Run the server script
-julia --project=. julia_server.jl
-```
-*Wait until you see messages indicating the server has started (e.g., "Server started successfully on localhost:8052"). The server will initialize all modules and display their status.*
-
-**Terminal 2: Run the Interactive CLI**
-```bash
-# Ensure you are in the project root directory (JuliaOS)
-# If not, cd back to it
-
-# Run the interactive CLI script
-node scripts/interactive.cjs
-```
-*You should now see the JuliaOS CLI menu with options for Agent Management, Swarm Intelligence, Blockchain Operations, and more.*
-
-
 
 ## Quick Start
 
@@ -261,6 +180,87 @@ That's it! This will build and start JuliaOS in Docker containers. The CLI will 
     ```bash
     npm run build
     ```
+
+## Local machine deployment and running guide
+
+** Use Git Bash or other Unix-like terminal for Windows users.**
+
+
+**1. Clone the Repository:**
+
+```bash
+git clone --single-branch --branch 23-04-max-fix https://github.com/Juliaoscode/JuliaOS.git
+cd JuliaOS
+```
+
+**2. Install Node.js Dependencies: This installs dependencies for the CLI, framework packages, bridge, etc.**
+
+```bash
+npm install --force
+```
+
+**3. Install Julia Dependencies: This installs the necessary Julia packages for the backend server.**
+
+```bash
+# Navigate to the julia directory
+cd julia
+
+# Activate the Julia environment and install packages
+# This might take some time on the first run as it downloads and precompiles packages
+julia -e 'using Pkg; Pkg.activate("."); Pkg.update(); Pkg.instantiate()'
+
+# Navigate back to the root directory
+cd ..
+```
+
+_Troubleshooting: Ensure Julia is installed and in your PATH. If Pkg.instantiate() fails, check your internet connection and Julia version compatibility (1.10+). Sometimes running julia -e 'using Pkg; Pkg.update()' inside the julia directory before instantiate can resolve issues._
+
+
+**4. Install Python Dependencies (Optional): If you want to use the Python wrapper, install the necessary Python packages.**
+
+```python
+# Option 1: Install directly from GitHub (recommended)
+pip install git+https://github.com/Juliaoscode/JuliaOS.git#subdirectory=packages/python-wrapper
+
+# Option 2: Install with LLM support
+pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=juliaos[llm]&subdirectory=packages/python-wrapper"
+
+# Option 3: Install with Google ADK support
+pip install "git+https://github.com/Juliaoscode/JuliaOS.git@23-04-max-fix#egg=juliaos[adk]&subdirectory=packages/python-wrapper"
+```
+
+
+#### Alternative: Start the Julia Server and Run the Interactive CLI in Two Separate Terminals:
+
+** Run build command**
+```bash
+npm run build
+```
+
+**Terminal 1: Start the Julia Server**
+```bash
+# Navigate to the julia directory
+cd julia/server
+
+# Activate the Julia environment and install packages
+# This might take some time on the first run as it downloads and precompiles packages
+julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()'
+
+# Run the server script
+julia --project=. julia_server.jl
+```
+*Wait until you see messages indicating the server has started (e.g., "Server started successfully on localhost:8052"). The server will initialize all modules and display their status.*
+
+**Terminal 2: Run the Interactive CLI**
+```bash
+# Ensure you are in the project root directory (JuliaOS)
+# If not, cd back to it
+
+# Run the interactive CLI script
+node scripts/interactive.cjs
+```
+*You should now see the JuliaOS CLI menu with options for Agent Management, Swarm Intelligence, Blockchain Operations, and more.*
+
 
 
 ## Architecture Overview
