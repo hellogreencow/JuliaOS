@@ -12,38 +12,35 @@
 
 JuliaOS is a comprehensive framework for building decentralized applications (DApps) with a focus on agent-based architectures, swarm intelligence, and cross-chain operations. It provides both a CLI interface for quick deployment and a framework API for custom implementations. By leveraging AI-powered agents and swarm optimization, JuliaOS enables sophisticated strategies across multiple blockchains.
 
-The system features real implementations of agents, swarms, blockchain interactions, DEX operations, storage, and cross-chain bridges. It has a modular architecture that allows for easy extension and integration with existing components. The Julia backend provides high-performance computation, while the TypeScript/JavaScript frontend offers a user-friendly interface. The Python wrapper provides a comprehensive interface to JuliaOS with support for LangChain, multiple LLM providers, and Google ADK.
+## 📚 Documentation
 
-## Documentation
-
-- [Overview](./docs/gitbook/technical/features/README.md): Project overview and vision
-- [Partners](./docs/gitbook/technical/features/agents.md): Partners & Ecosystems
+- 📖 [Overview](./docs/gitbook/technical/features/README.md): Project overview and vision
+- 🤝 [Partners](./docs/gitbook/technical/features/agents.md): Partners & Ecosystems
   
-### Technical
+### 🔧 Technical
 
-  - [Getting Started](./docs/gitbook/technical/features/agents.md): Quick start guide
-  - [Architecture](./docs/gitbook/technical/features/swarms.md): Architecture overview
-  - [Developer Hub](./docs/gitbook/technical/features/agents.md): For the developer
+- 🚀 [Getting Started](./docs/gitbook/technical/features/agents.md): Quick start guide
+- 🏗️ [Architecture](./docs/gitbook/technical/features/swarms.md): Architecture overview
+- 🧑‍💻 [Developer Hub](./docs/gitbook/technical/features/agents.md): For the developer
     
-### Features
+### ✨ Features
 
-- [Core Features & Concepts](./docs/gitbook/technical/features/swarms.md): Important features and fundamentals
-- [Agents](./docs/gitbook/technical/features/swarms.md): Everything about Agents
-- [Swarms](./docs/gitbook/technical/features/agents.md): Everything about Swarms
-- [Neural Networks](./docs/gitbook/technical/features/swarms.md): Everything about Neural Networks
-- [Blockchains](./docs/gitbook/technical/features/agents.md): All blockchains where you can find JuliaOS
-- [Bridges](./docs/gitbook/technical/features/swarms.md): Important bridge notes and information
-- [Integrations](./docs/gitbook/technical/features/agents.md): All forms of integrations
-- [Storage](./docs/gitbook/technical/features/swarms.md): Different types of storage
-- [Wallets](./docs/gitbook/technical/features/agents.md): Supported wallets
-- [Use Cases](./docs/gitbook/technical/features/agents.md): All use cases and examples
+- 🌟 [Core Features & Concepts](./docs/gitbook/technical/features/swarms.md): Important features and fundamentals
+- 🤖 [Agents](./docs/gitbook/technical/features/swarms.md): Everything about Agents
+- 🐝 [Swarms](./docs/gitbook/technical/features/agents.md): Everything about Swarms
+- 🧠 [Neural Networks](./docs/gitbook/technical/features/swarms.md): Everything about Neural Networks
+- ⛓️ [Blockchains](./docs/gitbook/technical/features/agents.md): All blockchains where you can find JuliaOS
+- 🌉 [Bridges](./docs/gitbook/technical/features/swarms.md): Important bridge notes and information
+- 🔌 [Integrations](./docs/gitbook/technical/features/agents.md): All forms of integrations
+- 💾 [Storage](./docs/gitbook/technical/features/swarms.md): Different types of storage
+- 👛 [Wallets](./docs/gitbook/technical/features/agents.md): Supported wallets
+- 🚩 [Use Cases](./docs/gitbook/technical/features/agents.md): All use cases and examples
 
+### 📡 API Reference
 
-### API Reference
-
-- [Julia API](./docs/gitbook/technical/api/julia.md): Julia backend API reference
-- [TypeScript API](./docs/gitbook/technical/api/typescript.md): TypeScript framework API reference
-- [Python API](./docs/gitbook/technical/api/python.md): Python wrapper API reference
+- 🔵 [Julia API](./docs/gitbook/technical/api/julia.md): Julia backend API reference
+- 🟦 [TypeScript API](./docs/gitbook/technical/api/typescript.md): TypeScript framework API reference
+- 🐍 [Python API](./docs/gitbook/technical/api/python.md): Python wrapper API reference
 
 
 ## Updated local machine deployment and running guide
