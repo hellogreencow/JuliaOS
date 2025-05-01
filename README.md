@@ -14,28 +14,28 @@ JuliaOS is a comprehensive framework for building decentralized applications (DA
 
 ## Documentation
 
-- 📖 [Overview](./docs/gitbook/technical/features/README.md): Project overview and vision
-- 🤝 [Partners](./docs/gitbook/technical/features/agents.md): Partners & Ecosystems
+- 📖 [Overview](https://juliaos.gitbook.io/juliaos-documentation-hub): Project overview and vision
+- 🤝 [Partners](https://juliaos.gitbook.io/juliaos-documentation-hub/partners-and-ecosystems/partners): Partners & Ecosystems
   
 ### Technical
 
-- 🚀 [Getting Started](./docs/gitbook/technical/features/agents.md): Quick start guide
-- 🏗️ [Architecture](./docs/gitbook/technical/features/swarms.md): Architecture overview
-- 🧑‍💻 [Developer Hub](./docs/gitbook/technical/features/agents.md): For the developer
+- 🚀 [Getting Started](https://juliaos.gitbook.io/juliaos-documentation-hub/technical/getting-started): Quick start guide
+- 🏗️ [Architecture](https://juliaos.gitbook.io/juliaos-documentation-hub/technical/architecture): Architecture overview
+- 🧑‍💻 [Developer Hub](https://juliaos.gitbook.io/juliaos-documentation-hub/developer-hub): For the developer
     
 ### Features
 
-- 🌟 [Core Features & Concepts](./docs/gitbook/technical/features/swarms.md): Important features and fundamentals
-- 🤖 [Agents](./docs/gitbook/technical/features/swarms.md): Everything about Agents
-- 🐝 [Swarms](./docs/gitbook/technical/features/agents.md): Everything about Swarms
-- 🧠 [Neural Networks](./docs/gitbook/technical/features/swarms.md): Everything about Neural Networks
-- ⛓️ [Blockchains](./docs/gitbook/technical/features/agents.md): All blockchains where you can find JuliaOS
-- 🌉 [Bridges](./docs/gitbook/technical/features/swarms.md): Important bridge notes and information
-- 🔌 [Integrations](./docs/gitbook/technical/features/agents.md): All forms of integrations
-- 💾 [Storage](./docs/gitbook/technical/features/swarms.md): Different types of storage
-- 👛 [Wallets](./docs/gitbook/technical/features/agents.md): Supported wallets
-- 🚩 [Use Cases](./docs/gitbook/technical/features/agents.md): All use cases and examples
-- 🔵 [API]([./docs/gitbook/technical/api/julia.md](https://app.gitbook.com/o/exUlED0J6dNbtzZEx1Nf/s/gTJWi5eSEdsS1fPoRXqT/~/changes/19/api-documentation/api-reference)): Julia backend API reference
+- 🌟 [Core Features & Concepts](https://juliaos.gitbook.io/juliaos-documentation-hub/features/core-features-and-concepts): Important features and fundamentals
+- 🤖 [Agents](https://juliaos.gitbook.io/juliaos-documentation-hub/features/agents): Everything about Agents
+- 🐝 [Swarms](https://juliaos.gitbook.io/juliaos-documentation-hub/features/swarms): Everything about Swarms
+- 🧠 [Neural Networks](https://juliaos.gitbook.io/juliaos-documentation-hub/features/neural-networks): Everything about Neural Networks
+- ⛓️ [Blockchains](https://juliaos.gitbook.io/juliaos-documentation-hub/features/blockchains-and-chains): All blockchains where you can find JuliaOS
+- 🌉 [Bridges](https://juliaos.gitbook.io/juliaos-documentation-hub/features/bridges-cross-chain): Important bridge notes and information
+- 🔌 [Integrations](https://juliaos.gitbook.io/juliaos-documentation-hub/features/integrations): All forms of integrations
+- 💾 [Storage](https://juliaos.gitbook.io/juliaos-documentation-hub/features/storage): Different types of storage
+- 👛 [Wallets](https://juliaos.gitbook.io/juliaos-documentation-hub/features/wallets): Supported wallets
+- 🚩 [Use Cases](https://juliaos.gitbook.io/juliaos-documentation-hub/features/use-cases): All use cases and examples
+- 🔵 [API](https://juliaos.gitbook.io/juliaos-documentation-hub/api-documentation/api-reference): Julia backend API reference
 
 
 
