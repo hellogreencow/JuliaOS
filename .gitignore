@@ -178,10 +178,13 @@ $RECYCLE.BIN/
 **/julia-history.jl
 
 # Package Manager
-package-lock.json
 # Uncomment if you want to ignore lockfiles
+# package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
+
+# Python specific
+venv/
 
 # Generated Files
 *.tsbuildinfo

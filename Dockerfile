@@ -12,11 +12,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Julia
-RUN wget -q https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.0-linux-x86_64.tar.gz \
-    && tar -xzf julia-1.10.0-linux-x86_64.tar.gz \
-    && mv julia-1.10.0 /opt/julia \
+RUN wget -q https://julialang-s3.julialang.org/bin/linux/x64/1.11/julia-1.11.4-linux-x86_64.tar.gz \
+    && tar -xzf julia-1.11.4-linux-x86_64.tar.gz \
+    && mv julia-1.11.4 /opt/julia \
     && ln -s /opt/julia/bin/julia /usr/local/bin/julia \
-    && rm julia-1.10.0-linux-x86_64.tar.gz
+    && rm julia-1.11.4-linux-x86_64.tar.gz
 
 # Set working directory
 WORKDIR /app

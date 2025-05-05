@@ -87,7 +87,7 @@ include("../config/config.jl")
 config = Config.load()
 
 # Import modules
-include("../src/juliaos.jl")
+include("../src/JuliaOS.jl")
 # Metrics module is not available yet
 # include("../src/core/utils/Metrics.jl")
 

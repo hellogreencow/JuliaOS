@@ -16,7 +16,7 @@ services:
     # Add a check to verify file exists
     entrypoint: ["/bin/bash", "-c", "if [ ! -f /app/julia/server/julia_server.jl ]; then echo 'Error: julia_server.jl not found'; ls -la /app/julia/server; exit 1; fi && exec julia --project=/app/julia /app/julia/server/julia_server.jl"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8052/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8052/health"]
       interval: 30s
       timeout: 10s
       retries: 3
