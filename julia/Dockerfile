@@ -12,7 +12,8 @@ RUN julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()'
 # Avoid copying the entire project to keep image small
 COPY julia/src /app/src
 COPY julia/julia_server.jl /app/
-COPY julia/load_modules.jl /app/ # Assuming this is needed by julia_server.jl
+COPY julia/load_modules.jl /app/ 
+# Assuming this is needed by julia_server.jl
 # If Bridge.jl needs specific setup beyond Pkg, copy it, otherwise rely on Pkg
 # COPY julia/bridge /app/bridge # If needed
 

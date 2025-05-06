@@ -1,4 +1,4 @@
-import { JuliaBridge } from '../../../julia-bridge/src/index';
+import { JuliaBridge } from 'julia-bridge';
 import { AgentManager, AgentManagerEvent, CreateAgentRequest, CreateSwarmRequest, GetAgentStateResponse } from '../index';
 import path from 'path';
 
