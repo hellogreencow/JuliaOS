@@ -47,6 +47,7 @@
     "log-symbols": "^4.1.0",
     "marked": "^15.0.8",
     "marked-terminal": "^7.3.0",
+    "matrix-js-sdk": "^37.5.0",
     "node-fetch": "^3.3.2",
     "onnxruntime-node": "^1.21.0",
     "openai": "^4.87.3",
