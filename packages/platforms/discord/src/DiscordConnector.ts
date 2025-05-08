@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits, Events, Message } from 'discord.js';
-import { Platform, PlatformConfig, MessageData } from '@juliaos/core';
+import { Platform, PlatformConfig, MessageData } from '../../../core/src';
 
 export interface DiscordConfig extends PlatformConfig {
   parameters: {
@@ -69,7 +69,7 @@ export class DiscordConnector extends Platform {
   async sendMessage(message: string, channelId: string): Promise<void> {
     try {
       const channel = await this.client.channels.fetch(channelId);
-      if (channel?.isTextBased()) {
+      if (channel?.isSendable()) {
         await channel.send(message);
       } else {
         throw new Error('Channel is not text-based');

@@ -189,14 +189,14 @@ export class MatrixConnector extends EventEmitter {
   async editMessage(roomId: string, messageId: string, newContent: string): Promise<void> {
     try {
       await this.client.sendMessage(roomId, {
-        'msgtype': 'm.room.message',
+        'msgtype': sdk.MsgType.Text,
         'body': `* ${newContent}`,
         'm.new_content': {
-          'msgtype': 'm.room.message',
+          'msgtype': sdk.MsgType.Text,
           'body': newContent
         },
         'm.relates_to': {
-          'rel_type': 'm.replace',
+          'rel_type': sdk.RelationType.Replace,
           'event_id': messageId
         }
       });
@@ -239,9 +239,9 @@ export class MatrixConnector extends EventEmitter {
 
   async addReaction(roomId: string, eventId: string, key: string): Promise<void> {
     try {
-      await this.client.sendEvent(roomId, 'm.reaction', {
+      await this.client.sendEvent(roomId, sdk.EventType.Reaction, {
         'm.relates_to': {
-          'rel_type': 'm.annotation',
+          'rel_type': sdk.RelationType.Annotation,
           'event_id': eventId,
           'key': key
         }

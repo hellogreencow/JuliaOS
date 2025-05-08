@@ -53,9 +53,7 @@ export class AgentManager extends EventEmitter {
   public async initialize(): Promise<boolean> {
     try {
       // Initialize JuliaBridge if not already initialized
-      if (!this.juliaBridge.isInitialized()) {
-        await this.juliaBridge.initialize();
-      }
+      await this.juliaBridge.initialize();
 
       // Register event handlers
       this.juliaBridge.on('error', (error) => {
