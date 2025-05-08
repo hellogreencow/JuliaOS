@@ -197,7 +197,7 @@ export class TwitterConnector extends Platform {
       // Process as regular message
       const messageData: MessageData = {
         content: tweetText,
-        sender: author,
+        sender: author ? author : 'unknown',
         channelId: `tweet:${tweetId}`, // Use tweet ID as channel ID for replies
         timestamp: createdAt
       };
