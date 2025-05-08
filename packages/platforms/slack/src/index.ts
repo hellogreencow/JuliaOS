@@ -1,6 +1,6 @@
 import { App, LogLevel } from '@slack/bolt';
 import { WebClient } from '@slack/web-api';
-import { Platform, PlatformConfig, MessageData } from '@juliaos/core';
+import { Platform, PlatformConfig, MessageData } from '../../../core/src';
 
 export interface SlackConfig extends PlatformConfig {
   parameters: {
@@ -39,7 +39,7 @@ export class SlackConnector extends Platform {
     this.app.message(async ({ message, say }) => {
       if (message.subtype === 'bot_message') return;
 
-      const content = message.text || '';
+      const content = 'text' in message && typeof message.text === 'string' ? message.text : '';
       
       // Check if it's a command
       if (content.startsWith(this.commandPrefix)) {
@@ -52,7 +52,7 @@ export class SlackConnector extends Platform {
           command,
           args,
           content: commandContent,
-          sender: message.user,
+          sender: 'user' in message ? message.user : 'undefined',
           channelId: message.channel,
           messageId: message.ts,
           timestamp: new Date(Number(message.ts) * 1000)
@@ -64,7 +64,7 @@ export class SlackConnector extends Platform {
       // Emit message event
       const messageData: MessageData = {
         content,
-        sender: message.user,
+        sender: 'user' in message ? message.user : 'undefined',
         channelId: message.channel,
         timestamp: new Date(Number(message.ts) * 1000)
       };
