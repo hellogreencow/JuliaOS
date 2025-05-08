@@ -1,6 +1,5 @@
-import { ethers } from 'ethers';
+import { ethers, keccak256 } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
-import { keccak256 } from 'ethers/lib/utils';
 
 export interface MCPConfig {
   supportedChains: string[];
@@ -66,7 +65,7 @@ export class MCPBridge {
 
     // Wait for transaction and get message hash
     const receipt = await tx.wait();
-    const event = receipt.events?.find(e => e.event === 'TokensBridged');
+    const event = receipt.events?.find((e: ethers.LogDescription) => e.name === 'TokensBridged');
     if (!event) {
       throw new Error('Bridge event not found');
     }
@@ -85,6 +84,7 @@ export class MCPBridge {
     }
 
     // Create merkle tree from proof
+    
     const leaf = keccak256(messageHash);
     const tree = new MerkleTree(proof.map(p => Buffer.from(p, 'hex')));
     
@@ -126,7 +126,7 @@ export class MCPBridge {
     );
 
     const receipt = await tx.wait();
-    const event = receipt.events?.find(e => e.event === 'TokensClaimed');
+    const event = receipt.events?.find((e: ethers.LogDescription) => e.name === 'TokensClaimed');
     if (!event) {
       throw new Error('Claim event not found');
     }
