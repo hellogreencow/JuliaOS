@@ -3,7 +3,7 @@ import { MarketDataService, MarketDataConfig } from '../market-data';
 import { TradingService } from '../trading';
 import { Agent } from '../agent';
 import { Swarm } from '../swarm';
-import { Token } from '../types';
+import { Token } from '../../tokens/types';
 import { UniswapV3Service } from '../uniswap';
 
 // Mock services
@@ -45,13 +45,22 @@ describe('Agent and Swarm Integration Tests', () => {
         tradingService: trading,
         marketDataService: marketData,
         riskParameters: {
-          maxPositionSize: ethers.parseEther('1'),
+          maxPositionSize: ethers.parseEther('1').toString(),
           stopLossPercentage: 0.05,
           takeProfitPercentage: 0.1
         },
         tradingParameters: {
           entryThreshold: 0.02,
-          exitThreshold: 0.01
+          exitThreshold: 0.01,
+          stopLossPercentage: 0.05,
+          takeProfitPercentage: 0.1
+        },
+        strategy: {
+          type: 'momentum',
+          parameters: {
+            momentumThreshold: 0.03,
+            volumeThreshold: 0.05
+          }
         }
       });
     });
@@ -85,13 +94,22 @@ describe('Agent and Swarm Integration Tests', () => {
           tradingService: trading,
           marketDataService: marketData,
           riskParameters: {
-            maxPositionSize: ethers.parseEther('1'),
+            maxPositionSize: ethers.parseEther('1').toString(),
             stopLossPercentage: 0.05,
             takeProfitPercentage: 0.1
           },
           tradingParameters: {
             entryThreshold: 0.02,
-            exitThreshold: 0.01
+            exitThreshold: 0.01,
+            stopLossPercentage: 0.05,
+            takeProfitPercentage: 0.1
+          },
+          strategy: {
+            type: 'momentum',
+            parameters: {
+              momentumThreshold: 0.03,
+              volumeThreshold: 0.05
+            }
           }
         }),
         new Agent({
@@ -99,13 +117,22 @@ describe('Agent and Swarm Integration Tests', () => {
           tradingService: trading,
           marketDataService: marketData,
           riskParameters: {
-            maxPositionSize: ethers.parseEther('2'),
+            maxPositionSize: ethers.parseEther('2').toString(),
             stopLossPercentage: 0.07,
             takeProfitPercentage: 0.15
           },
           tradingParameters: {
             entryThreshold: 0.03,
-            exitThreshold: 0.015
+            exitThreshold: 0.015,
+            stopLossPercentage: 0.07,
+            takeProfitPercentage: 0.15
+          },
+          strategy: {
+            type: 'trend-following',
+            parameters: {
+              shortPeriod: 20,
+              longPeriod: 50
+            }
           }
         })
       ];

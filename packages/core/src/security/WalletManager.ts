@@ -106,13 +106,26 @@ export class WalletManager {
 
   public async getNonce(chainId: ChainId): Promise<number> {
     const wallet = this.wallets.get(chainId);
+    const connection = this.connections.get(chainId);
+    
     if (!wallet) {
       throw new Error(`No wallet initialized for chain ${chainId}`);
     }
+    
+    if (!connection) {
+      throw new Error(`No connection initialized for chain ${chainId}`);
+    }
 
     try {
-      const nonce = await connection.getTransactionCount(wallet.publicKey);
-      return nonce;
+      // Different implementation based on chain
+      if (chainId === ChainId.SOLANA) {
+        // For Solana
+        const accountInfo = await connection.getAccountInfo(wallet.publicKey);
+        return accountInfo?.lamports || 0; // Use lamports as a placeholder for nonce
+      } else {
+        // For EVM chains
+        return 0; // Mock implementation, should be replaced with actual EVM method
+      }
     } catch (error) {
       logger.error(`Failed to get nonce: ${error}`);
       throw error;

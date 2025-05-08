@@ -8,13 +8,22 @@
  * @module skills
  */
 
-// Export the base Skill class and interfaces
-export { Skill, SkillConfig } from './Skill';
+// Import and export skills
+import { Skill } from './Skill';
+export { Skill };
+export type { SkillConfig } from './Skill';
 
-// Export concrete skill implementations
-export { EchoSkill, EchoSkillConfig } from './EchoSkill';
-export { DeFiTradingSkill, DeFiTradingConfig, MarketData } from './DeFiTradingSkill';
-export { WebSearchSkill, WebSearchSkillConfig, SearchResult } from './WebSearchSkill';
+import { EchoSkill } from './EchoSkill';
+export { EchoSkill };
+export type { EchoSkillConfig } from './EchoSkill';
+
+import { DeFiTradingSkill } from './DeFiTradingSkill';
+export { DeFiTradingSkill };
+export type { DeFiTradingConfig, MarketData } from './DeFiTradingSkill';
+
+import { WebSearchSkill } from './WebSearchSkill';
+export { WebSearchSkill };
+export type { WebSearchSkillConfig, SearchResult } from './WebSearchSkill';
 
 /**
  * Example usage:

@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 export class MarketDataService {
-  constructor(provider: ethers.Provider, config: any) {}
+  constructor(provider: any, config: any) {}
 
   async getPrice(token: string): Promise<number> {
     return 100; // Mock price

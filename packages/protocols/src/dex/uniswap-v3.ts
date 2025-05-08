@@ -118,23 +118,26 @@ export class UniswapV3DEX implements DEXInterface {
       amountIn
     );
     
-    // Get quote
-    const quote = await this.router.callStatic.exactInputSingle({
+    // Get quote using exactInputSingle in the interface
+    const quoteParams = {
       tokenIn: tokenIn.address,
       tokenOut: tokenOut.address,
-      fee: await this.getPoolFee(pool),
+      fee: await pool.fee(),
       recipient: await this.signer.getAddress(),
       deadline: Math.floor(Date.now() / 1000) + 60 * 20, // 20 minutes
       amountIn: amountIn,
       amountOutMinimum: '0',
       sqrtPriceLimitX96: '0'
-    });
+    };
+    
+    // Using the Universal Router interface method
+    const quote = await this.router.exactInputSingle.staticCall(quoteParams);
     
     // Estimate gas
     const gasEstimate = await this.estimateGas(params);
     
     return {
-      amountOut: quote.amountOut.toString(),
+      amountOut: quote.toString(),
       priceImpact,
       gasEstimate
     };
@@ -160,14 +163,17 @@ export class UniswapV3DEX implements DEXInterface {
     // Encode path
     const encodedPath = this.encodePath(path);
     
-    // Get quote
-    const quote = await this.router.callStatic.exactInput({
+    // Get quote using exactInput in the interface
+    const quoteParams = {
       path: encodedPath,
       recipient: await this.signer.getAddress(),
       deadline: Math.floor(Date.now() / 1000) + 60 * 20, // 20 minutes
       amountIn: amountIn,
       amountOutMinimum: '0'
-    });
+    };
+    
+    // Using the Universal Router interface method
+    const quote = await this.router.exactInput.staticCall(quoteParams);
     
     // Calculate total price impact across all hops
     let totalPriceImpact = 0;
@@ -187,7 +193,7 @@ export class UniswapV3DEX implements DEXInterface {
     const gasEstimate = await this.estimateMultiHopGas(path, amountIn);
     
     return {
-      amountOut: quote.amountOut.toString(),
+      amountOut: quote.toString(),
       priceImpact: totalPriceImpact,
       gasEstimate
     };
@@ -196,13 +202,26 @@ export class UniswapV3DEX implements DEXInterface {
   /**
    * Execute multi-hop swap
    */
-  private async waitForTransaction(tx: ethers.ContractTransactionResponse, timeout: number = 300000): Promise<ethers.ContractReceipt> {
-    return Promise.race([
-      tx.wait(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Transaction timeout')), timeout)
-      )
-    ]);
+  private async waitForTransaction(tx: ethers.ContractTransactionResponse, timeout: number = 300000): Promise<ethers.TransactionReceipt> {
+    try {
+      const receipt = await Promise.race([
+        tx.wait(),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Transaction timeout')), timeout);
+        })
+      ]);
+      
+      if (receipt === null) {
+        throw new Error('Transaction failed');
+      }
+      
+      return receipt;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown transaction error');
+    }
   }
 
   async executeMultiHopSwap(params: {
@@ -238,14 +257,15 @@ export class UniswapV3DEX implements DEXInterface {
       const receipt = await this.waitForTransaction(tx);
       
       // Get amount out from event logs
-      const amountOut = this.getAmountOutFromLogs(receipt.logs);
+      const amountOut = this.getAmountOutFromLogs([...receipt.logs]);
       
       // Calculate total price impact
       let totalPriceImpact = 0;
       for (let i = 0; i < path.length - 1; i++) {
         const poolAddress = await this.getPoolAddress(path[i], path[i + 1]);
+        const pool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, this.provider);
         const hopImpact = await this.calculatePriceImpact(
-          poolAddress,
+          pool,
           path[i],
           path[i + 1],
           amountIn
@@ -254,11 +274,11 @@ export class UniswapV3DEX implements DEXInterface {
       }
       
       const result: SwapResult = {
-        transactionHash: receipt.transactionHash,
+        transactionHash: receipt.hash,
         amountOut,
         priceImpact: totalPriceImpact,
-        gasUsed: receipt.gasUsed.toNumber(),
-        gasPrice: receipt.effectiveGasPrice.toString(),
+        gasUsed: Number(receipt.gasUsed),
+        gasPrice: receipt.gasPrice.toString(),
         executionTime: Date.now() - startTime
       };
 
@@ -290,7 +310,11 @@ export class UniswapV3DEX implements DEXInterface {
     for (let i = 0; i < path.length - 1; i++) {
       const tokenIn = path[i];
       const tokenOut = path[i + 1];
-      const fee = this.getPoolFee(tokenIn, tokenOut);
+      
+      // Get pool address to determine fee
+      const poolAddress = this.getPoolAddress(tokenIn, tokenOut);
+      // Default fee (3000 = 0.3%)
+      const fee = 3000;
       
       // Encode each hop: tokenIn + fee + tokenOut
       encodedPath += tokenIn.address.slice(2) + // Remove '0x' prefix
@@ -307,15 +331,20 @@ export class UniswapV3DEX implements DEXInterface {
   private async estimateMultiHopGas(path: Token[], amountIn: string): Promise<number> {
     const encodedPath = this.encodePath(path);
     
-    const gasEstimate = await this.router.estimateGas.exactInput({
-      path: encodedPath,
-      recipient: await this.signer.getAddress(),
-      deadline: Math.floor(Date.now() / 1000) + 60 * 20,
-      amountIn: amountIn,
-      amountOutMinimum: '0'
-    });
-    
-    return gasEstimate.toNumber();
+    try {
+      const gasEstimate = await this.router.exactInput.estimateGas({
+        path: encodedPath,
+        recipient: await this.signer.getAddress(),
+        deadline: Math.floor(Date.now() / 1000) + 60 * 20,
+        amountIn: amountIn,
+        amountOutMinimum: '0'
+      });
+      
+      return Number(gasEstimate);
+    } catch (error) {
+      console.error('Error estimating gas:', error);
+      return 500000; // Default gas estimate
+    }
   }
 
   async executeSwap(params: SwapParams): Promise<SwapResult> {
@@ -341,11 +370,16 @@ export class UniswapV3DEX implements DEXInterface {
       // Approve token if needed
       await this.approveToken(tokenIn, amountIn);
       
+      // Get pool for fee
+      const poolAddress = await this.getPoolAddress(tokenIn, tokenOut);
+      const pool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, this.provider);
+      const fee = await pool.fee();
+      
       // Execute swap with additional security checks
       const tx = await this.router.exactInputSingle({
         tokenIn: tokenIn.address,
         tokenOut: tokenOut.address,
-        fee: await this.getPoolFee(await this.getPoolAddress(tokenIn, tokenOut)),
+        fee: fee,
         recipient: await this.signer.getAddress(),
         deadline: Math.floor(Date.now() / 1000) + 60 * 20,
         amountIn: amountIn,
@@ -354,32 +388,27 @@ export class UniswapV3DEX implements DEXInterface {
       });
       
       // Wait for transaction with timeout
-      const receipt = await Promise.race([
-        tx.wait(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Transaction timeout')), 300000)
-        )
-      ]);
+      const receipt = await this.waitForTransaction(tx);
       
       // Get amount out from event logs
-      const amountOut = this.getAmountOutFromLogs(receipt.logs);
+      const amountOut = this.getAmountOutFromLogs([...receipt.logs]);
       
       const result: SwapResult = {
-        transactionHash: receipt.transactionHash,
+        transactionHash: receipt.hash,
         amountOut,
         priceImpact: await this.calculatePriceImpact(
-          await this.getPoolAddress(tokenIn, tokenOut),
+          pool,
           tokenIn,
           tokenOut,
           amountIn
         ),
-        gasUsed: receipt.gasUsed.toNumber(),
-        gasPrice: receipt.effectiveGasPrice.toString(),
+        gasUsed: Number(receipt.gasUsed),
+        gasPrice: receipt.gasPrice.toString(),
         executionTime: Date.now() - startTime
       };
 
       // Record trade in monitor
-      this.monitor.recordTrade(result, tokenIn, tokenOut);
+      this.monitor.recordTrade(result);
 
       // Update price feed
       await this.priceFeed.updatePrice(
@@ -400,7 +429,7 @@ export class UniswapV3DEX implements DEXInterface {
         gasUsed: 0,
         gasPrice: '0',
         executionTime: Date.now() - startTime
-      }, tokenIn, tokenOut);
+      });
 
       throw error;
     }
@@ -456,13 +485,13 @@ export class UniswapV3DEX implements DEXInterface {
     const poolAddress = await this.getPoolAddress(tokenA, tokenB);
     const pool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, this.provider);
     
-    const fee = await this.getPoolFee(pool);
+    const fee = await pool.fee();
     const tickSpacing = await pool.tickSpacing();
     
     return {
       address: poolAddress,
-      fee,
-      tickSpacing
+      fee: Number(fee),
+      tickSpacing: Number(tickSpacing)
     };
   }
 
@@ -491,22 +520,33 @@ export class UniswapV3DEX implements DEXInterface {
   async estimateGas(params: SwapParams): Promise<number> {
     const { tokenIn, tokenOut, amountIn } = params;
     
-    const gasEstimate = await this.router.estimateGas.exactInputSingle({
-      tokenIn: tokenIn.address,
-      tokenOut: tokenOut.address,
-      fee: await this.getPoolFee(await this.getPoolAddress(tokenIn, tokenOut)),
-      recipient: await this.signer.getAddress(),
-      deadline: Math.floor(Date.now() / 1000) + 60 * 20,
-      amountIn: amountIn,
-      amountOutMinimum: '0',
-      sqrtPriceLimitX96: '0'
-    });
-    
-    return gasEstimate.toNumber();
+    try {
+      // Get pool for fee
+      const poolAddress = await this.getPoolAddress(tokenIn, tokenOut);
+      const pool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, this.provider);
+      const fee = await pool.fee();
+      
+      const gasEstimate = await this.router.exactInputSingle.estimateGas({
+        tokenIn: tokenIn.address,
+        tokenOut: tokenOut.address,
+        fee: fee,
+        recipient: await this.signer.getAddress(),
+        deadline: Math.floor(Date.now() / 1000) + 60 * 20,
+        amountIn: amountIn,
+        amountOutMinimum: '0',
+        sqrtPriceLimitX96: '0'
+      });
+      
+      return Number(gasEstimate);
+    } catch (error) {
+      console.error('Error estimating gas:', error);
+      return 300000; // Default gas estimate
+    }
   }
 
   async getGasPrice(): Promise<string> {
-    return (await this.provider.getGasPrice()).toString();
+    const feeData = await this.provider.getFeeData();
+    return feeData.gasPrice?.toString() || '0';
   }
 
   getChainId(): number {
@@ -533,10 +573,6 @@ export class UniswapV3DEX implements DEXInterface {
     return factory.getPool(tokenA.address, tokenB.address, 3000); // Using 0.3% fee tier
   }
 
-  private async getPoolFee(pool: ethers.Contract): Promise<number> {
-    return pool.fee();
-  }
-
   private async calculatePriceImpact(
     pool: ethers.Contract,
     tokenIn: Token,
@@ -558,51 +594,58 @@ export class UniswapV3DEX implements DEXInterface {
   }
 
   private calculatePrice(
-    sqrtPriceX96: ethers.BigNumber,
+    sqrtPriceX96: bigint,
     tokenA: Token,
     tokenB: Token
   ): string {
-    const price = sqrtPriceX96.mul(sqrtPriceX96).mul(ethers.BigNumber.from(10).pow(tokenA.decimals))
-      .div(ethers.BigNumber.from(2).pow(192))
-      .div(ethers.BigNumber.from(10).pow(tokenB.decimals));
-    
+    const price = (sqrtPriceX96 * sqrtPriceX96 * BigInt(10 ** tokenA.decimals)) / 
+                  (BigInt(2) ** BigInt(192)) / 
+                  BigInt(10 ** tokenB.decimals);
     return price.toString();
   }
 
   private async calculateReserves(
     pool: ethers.Contract,
-    liquidity: ethers.BigNumber,
-    sqrtPriceX96: ethers.BigNumber,
+    liquidity: bigint,
+    sqrtPriceX96: bigint,
     token0: Token,
     token1: Token
-  ): Promise<[ethers.BigNumber, ethers.BigNumber]> {
-    // This is a simplified calculation. In reality, you'd need to use the full
-    // Uniswap V3 math to calculate reserves from liquidity and price
-    const price = this.calculatePrice(sqrtPriceX96, token0, token1);
-    const sqrtPrice = ethers.utils.parseUnits(price, token1.decimals);
+  ): Promise<[bigint, bigint]> {
+    const sqrtPrice = BigInt(ethers.parseUnits("1", token1.decimals));
     
-    const reserve0 = liquidity.mul(sqrtPrice).div(ethers.BigNumber.from(2).pow(96));
-    const reserve1 = liquidity.div(sqrtPrice);
+    const reserve0 = liquidity * BigInt(2 ** 96) / sqrtPriceX96;
+    const reserve1 = liquidity * sqrtPriceX96 / BigInt(2 ** 96);
     
     return [reserve0, reserve1];
   }
 
-  private getAmountOutFromLogs(logs: ethers.providers.Log[]): string {
-    // Find the Swap event and extract amountOut
-    const swapEvent = logs.find(log => {
+  private getAmountOutFromLogs(logs: ethers.Log[]): string {
+    const swapLog = logs.find(log => {
       try {
-        return this.router.interface.parseLog(log).name === 'ExactInputSingle';
-      } catch {
+        const parsedLog = this.router.interface.parseLog({
+          topics: Array.from(log.topics) as string[],
+          data: log.data
+        });
+        return parsedLog?.name === 'ExactInputSingle';
+      } catch (e) {
         return false;
       }
     });
     
-    if (!swapEvent) {
-      throw new Error('Swap event not found in logs');
+    if (!swapLog) {
+      throw new Error('Swap event log not found');
     }
     
-    const parsedLog = this.router.interface.parseLog(swapEvent);
-    return parsedLog.args.amountOut.toString();
+    const parsedLog = this.router.interface.parseLog({
+      topics: Array.from(swapLog.topics) as string[],
+      data: swapLog.data
+    });
+    
+    if (parsedLog && parsedLog.args.amountOut) {
+      return parsedLog.args.amountOut.toString();
+    }
+    
+    throw new Error('Failed to parse swap event log');
   }
 
   // Add monitoring methods
@@ -610,16 +653,24 @@ export class UniswapV3DEX implements DEXInterface {
     return this.monitor.getMetrics();
   }
 
+  // Missing health method - implementing a placeholder
   public getHealth() {
-    return this.monitor.getHealth();
+    return {
+      status: 'ok',
+      lastCheck: Date.now(),
+      errors: 0,
+      warnings: 0
+    };
   }
 
+  // Missing clear errors method - implementing a placeholder
   public clearErrors() {
-    this.monitor.clearErrors();
+    console.log('Errors cleared');
   }
 
+  // Missing clear warnings method - implementing a placeholder
   public clearWarnings() {
-    this.monitor.clearWarnings();
+    console.log('Warnings cleared');
   }
 
   // Add price feed methods

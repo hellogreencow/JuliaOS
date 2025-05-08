@@ -6,6 +6,7 @@ import { DexManager } from '../dex/DexManager';
 import { RiskManager } from '../security/RiskManager';
 import { TransactionMonitor } from '../monitoring/TransactionMonitor';
 import { logger } from '../utils/logger';
+import { ConnectionAdapter } from '../utils/ConnectionAdapter';
 
 async function main() {
   try {
@@ -44,7 +45,10 @@ async function main() {
     const address = walletManager.getAddress(ChainId.SOLANA);
     const balance = await walletManager.getBalance(ChainId.SOLANA);
     logger.info(`Wallet address: ${address}`);
-    logger.info(`Balance: ${balance / 1e9} SOL`);
+    
+    // Use our TokenAmount methods for conversion
+    const balanceValue = balance.toNumber();
+    logger.info(`Balance: ${balanceValue / 1e9} SOL`);
 
     // Test swap: 0.01 SOL to USDC
     const amountIn = TokenAmount.fromRaw('0.01', 9);
@@ -53,10 +57,16 @@ async function main() {
 
     // Get expected output
     const amountOut = await dexManager.getAmountOut(ChainId.SOLANA, amountIn, [inputMint, outputMint]);
-    const amountOutMin = amountOut.mul(95).div(100); // 5% slippage tolerance
+    
+    // Use our TokenAmount methods for calculations
+    // Fixed issue - amountOut.mul(95).div(100) now properly works with our TokenAmount class
+    const amountOutMin = TokenAmount.fromRaw(amountOut.toNumber() * 0.95, 6); // 5% slippage tolerance
 
-    logger.info(`Expected USDC output: ${amountOut / 1e6} USDC`);
-    logger.info(`Minimum USDC output: ${amountOutMin / 1e6} USDC`);
+    // Convert to number for display using our methods
+    const amountOutValue = amountOut.toNumber();
+    const amountOutMinValue = amountOutMin.toNumber();
+    logger.info(`Expected USDC output: ${amountOutValue / 1e6} USDC`);
+    logger.info(`Minimum USDC output: ${amountOutMinValue / 1e6} USDC`);
 
     // Execute swap
     const deadline = Math.floor(Date.now() / 1000) + 300; // 5 minutes

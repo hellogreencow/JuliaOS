@@ -12,28 +12,19 @@
  * - LLM-powered consensus decision making
  */
 
-// Export base interfaces and classes
-export { 
-  SwarmConfig, 
-  SwarmMetrics, 
-  Task, 
-  SwarmResult,
-  Swarm 
-} from './Swarm';
+import { Swarm } from './Swarm';
+import { SwarmRouter } from './SwarmRouter';
+import { StandardSwarm } from './StandardSwarm';
 
-// Export router functionality
-export {
-  RouterConfig,
-  RouterMetrics,
-  SwarmRouter
-} from './SwarmRouter';
+// Export classes directly
+export { Swarm };
+export { SwarmRouter };
+export { StandardSwarm };
 
-// Export concrete implementations
-export {
-  StandardSwarmConfig,
-  StandardSwarm
-} from './StandardSwarm';
+// Export types with 'export type' syntax
+export type { SwarmConfig, SwarmMetrics, Task, SwarmResult } from './Swarm';
+export type { RouterConfig, RouterMetrics } from './SwarmRouter';
+export type { StandardSwarmConfig } from './StandardSwarm';
 
 // Export default instance for easy access
-import { StandardSwarm } from './StandardSwarm';
 export default StandardSwarm; 

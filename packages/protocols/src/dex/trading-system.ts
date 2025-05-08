@@ -59,7 +59,11 @@ export class TradingSystem {
     this.isRunning = false;
 
     // Initialize components
-    this.positionManager = new PositionManager();
+    this.positionManager = new PositionManager(
+      provider,
+      marketData,
+      uniswap
+    );
     this.riskManager = new RiskManager(
       {
         maxPositionSize: params.maxPositionSize,
@@ -163,7 +167,7 @@ export class TradingSystem {
       // Check stop loss
       if (position.stopLoss) {
         const currentPrice = await this.marketData.getPrice(position.token.address);
-        if (currentPrice <= parseFloat(position.stopLoss)) {
+        if (parseFloat(currentPrice) <= parseFloat(position.stopLoss)) {
           await this.executionManager.closePosition(positionId);
         }
       }
@@ -171,7 +175,7 @@ export class TradingSystem {
       // Check take profit
       if (position.takeProfit) {
         const currentPrice = await this.marketData.getPrice(position.token.address);
-        if (currentPrice >= parseFloat(position.takeProfit)) {
+        if (parseFloat(currentPrice) >= parseFloat(position.takeProfit)) {
           await this.executionManager.closePosition(positionId);
         }
       }

@@ -63,6 +63,6 @@ export interface DEXInterface {
   
   // Chain specific
   getChainId(): number;
-  getProvider(): ethers.providers.Provider;
+  getProvider(): ethers.Provider;
   getSigner(): ethers.Signer;
 } 

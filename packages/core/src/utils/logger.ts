@@ -221,7 +221,7 @@ export class Logger {
   }
 }
 
-// Create default logger instance
+// Create default logger instance with full implementation
 export const logger = new Logger({
   prefix: 'JuliaOS',
 });
@@ -229,19 +229,5 @@ export const logger = new Logger({
 // Export default instance
 export default logger;
 
-export const logger = {
-  info: (message: string, ...args: any[]) => {
-    console.log(`[INFO] ${message}`, ...args);
-  },
-  error: (message: string, ...args: any[]) => {
-    console.error(`[ERROR] ${message}`, ...args);
-  },
-  warn: (message: string, ...args: any[]) => {
-    console.warn(`[WARN] ${message}`, ...args);
-  },
-  debug: (message: string, ...args: any[]) => {
-    console.debug(`[DEBUG] ${message}`, ...args);
-  }
-};
-
-export { logger }; 
+// Do not redeclare logger
+// Removed duplicate declaration and export 

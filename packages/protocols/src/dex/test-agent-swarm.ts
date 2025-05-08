@@ -1,9 +1,10 @@
 import { ethers } from 'ethers';
-import { MarketDataService } from './market-data';
+import { MarketDataService, MarketDataConfig } from './market-data';
 import { TradingService } from './trading';
 import { Agent, AgentConfig } from './agent';
-import { Swarm, SwarmConfig } from './swarm';
+import { Swarm } from './swarm';
 import { Token } from '../tokens/types';
+import { USDC, WETH } from '../tokens';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -168,7 +169,7 @@ async function testFramework() {
 
     // Create and test swarm
     console.log('\nTesting swarm...');
-    const swarmConfig: SwarmConfig = {
+    const swarmConfig = {
       id: 'test-swarm',
       agents: agentConfigs,
       riskParams: {
@@ -284,4 +285,24 @@ async function main() {
 }
 
 // Run tests
-main().catch(console.error); 
+main().catch(console.error);
+
+function expect(actual: any) {
+  return {
+    toBe: (expected: any) => {
+      if (actual !== expected) {
+        throw new Error(`Expected ${actual} to be ${expected}`);
+      }
+    },
+    toBeDefined: () => {
+      if (actual === undefined) {
+        throw new Error('Expected value to be defined');
+      }
+    },
+    toBeGreaterThan: (expected: number) => {
+      if (!(actual > expected)) {
+        throw new Error(`Expected ${actual} to be greater than ${expected}`);
+      }
+    }
+  };
+} 

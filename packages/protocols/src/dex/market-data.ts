@@ -10,6 +10,9 @@ export interface MarketData {
   confidence: number;
   marketCap?: string;
   priceChange24h?: string;
+  volumeChange24h?: string;
+  price24hAgo?: string;
+  volume24hAgo?: string;
 }
 
 export interface MarketDataConfig {
@@ -39,7 +42,7 @@ export class MarketDataService {
   private uniswapV3FactoryABI = [
     'function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool)'
   ];
-  private priceCache: Map<string, { price: string; timestamp: number }>;
+  private priceCache: Map<string, MarketData>;
   private mockPrices: Record<string, number>;
   private mockVolumes: Record<string, number>;
 
@@ -114,8 +117,19 @@ export class MarketDataService {
     return (priceInDecimals * baseInDecimals).toString();
   }
 
-  async getPrice(token: Token, quoteToken?: Token): Promise<string> {
+  /**
+   * Gets the price of a token, accepting either a Token object or string symbol/address
+   * @param tokenInput Token object or string (symbol or address)
+   * @param quoteToken Optional quote token
+   * @returns Token price as string
+   */
+  async getPrice(tokenInput: Token | string, quoteToken?: Token): Promise<string> {
     try {
+      // Convert string input to a Token-like object if needed
+      const token = typeof tokenInput === 'string' 
+        ? this.getTokenFromStringInput(tokenInput)
+        : tokenInput;
+
       // Check if we have a Chainlink feed for this token
       if (this.config.chainlinkFeeds && this.config.chainlinkFeeds[token.address]) {
         const feedAddress = this.config.chainlinkFeeds[token.address];
@@ -147,7 +161,10 @@ export class MarketDataService {
         this.cache.set(cacheKey, {
           price: price.toString(),
           timestamp: Date.now(),
-          source: 'Chainlink'
+          source: 'Chainlink',
+          volume24h: '0',
+          liquidity: '0',
+          confidence: 0.95
         });
 
         return price.toString();
@@ -186,7 +203,10 @@ export class MarketDataService {
           this.cache.set(cacheKey, {
             price: adjustedPrice.toString(),
             timestamp: Date.now(),
-            source: 'Uniswap'
+            source: 'Uniswap',
+            volume24h: '0',
+            liquidity: '0',
+            confidence: 0.85
           });
 
           return adjustedPrice.toString();
@@ -205,18 +225,26 @@ export class MarketDataService {
       // For unknown tokens, return a random price between 0.1 and 100
       return (Math.random() * 99.9 + 0.1).toFixed(2);
     } catch (error) {
-      console.error(`Error getting price for ${token.symbol}:`, error);
+      console.error(`Error getting price for ${typeof tokenInput === 'string' ? tokenInput : tokenInput.symbol}:`, error);
 
       // Fallback to mock prices if there's an error
-      if (this.mockPrices[token.symbol]) {
-        return this.mockPrices[token.symbol].toFixed(2);
+      const symbol = typeof tokenInput === 'string' 
+        ? tokenInput 
+        : tokenInput.symbol;
+      
+      if (this.mockPrices[symbol]) {
+        return this.mockPrices[symbol].toFixed(2);
       }
 
       return (Math.random() * 99.9 + 0.1).toFixed(2);
     }
   }
 
-  async getVolume(token: Token): Promise<string> {
+  async getVolume(tokenInput: Token | string): Promise<string> {
+    const token = typeof tokenInput === 'string' 
+      ? this.getTokenFromStringInput(tokenInput) 
+      : tokenInput;
+    
     if (this.mockVolumes[token.symbol]) {
       // Add some random noise to the volume (±20%)
       const baseVolume = this.mockVolumes[token.symbol];
@@ -240,129 +268,111 @@ export class MarketDataService {
     return (volume * multiplier).toFixed(0);
   }
 
-  async getMarketData(token: Token, quoteToken?: Token): Promise<any> {
+  /**
+   * Gets market data for a token, accepting either a Token object or string symbol/address
+   * @param tokenInput Token object or string (symbol or address)
+   * @param quoteToken Optional quote token
+   * @returns MarketData object or null
+   */
+  async getMarketData(tokenInput: Token | string, quoteToken?: Token): Promise<MarketData | null> {
+    // Convert string input to a Token-like object if needed
+    const token = typeof tokenInput === 'string' 
+      ? this.getTokenFromStringInput(tokenInput)
+      : tokenInput;
+
     const cacheKey = this.getCacheKey(token, quoteToken);
     const cachedData = this.priceCache.get(cacheKey);
-
-    // Check if we have fresh cached data
-    if (cachedData && (Date.now() - cachedData.timestamp) < this.config.updateInterval!) {
+    
+    // If we have fresh data in cache, return it
+    if (cachedData && (Date.now() - cachedData.timestamp < this.config.updateInterval!)) {
       return cachedData;
     }
-
+    
+    // If we have stale data, provide it with reduced confidence
+    if (cachedData) {
+      if (Date.now() - cachedData.timestamp > this.config.maxStaleTime! * 1000) {
+        const staleData: MarketData = {
+          ...cachedData,
+          confidence: Math.max(0.1, cachedData.confidence * 0.5),
+          source: `${cachedData.source} (Stale)`
+        };
+        return staleData;
+      }
+      return cachedData;
+    }
+    
+    // Try to get fresh data
     try {
-      // Get fresh price
-      const price = await this.getPrice(token, quoteToken);
-
-      // Get volume data
-      let volume = await this.getVolume(token);
-
+      // Get price first
+      const price = await this.getPrice(token, quoteToken || token);
+      if (!price) return null;
+      
+      // Get volume (this might be from a different source)
+      const volume = await this.getVolume(token) || '0';
+      
       // Get liquidity data
-      let liquidity = await this.getLiquidity(token.address);
-
-      // Get source of the price data
-      let source = 'Unknown';
-      let confidence = 0.5;
-
-      // Determine the source and confidence based on how we got the price
-      if (this.config.chainlinkFeeds && this.config.chainlinkFeeds[token.address]) {
-        source = 'Chainlink';
-        confidence = 0.95; // High confidence for Chainlink data
-      } else if (quoteToken) {
-        const poolAddress = await this.findUniswapPool(token.address, quoteToken.address);
-        if (poolAddress && poolAddress !== ethers.ZeroAddress) {
-          source = 'Uniswap';
-          confidence = 0.85; // Good confidence for Uniswap data
-        } else {
-          source = 'Estimated';
-          confidence = 0.6; // Lower confidence for estimated data
-        }
-      } else {
-        // If we're using mock data, lower the confidence
-        source = 'Simulated';
-        confidence = 0.3;
-      }
-
-      // Get historical data to calculate price change
-      let priceChange24h = '0.00';
-      let volumeChange24h = '0.00';
-
-      // Try to get historical data from cache or API
-      const historicalKey = `historical_${token.address}`;
-      const historicalData = this.cache.get(historicalKey);
-
+      const liquidity = await this.getLiquidity(token.address) || '0';
+      
+      // Calculate daily changes
+      const historicalData = quoteToken ? await this.getHistoricalData(token, quoteToken) : null;
+      let priceChange24h = '0';
+      let volumeChange24h = '0';
+      
       if (historicalData && historicalData.price24hAgo) {
-        // Calculate actual price change percentage
-        const priceNow = parseFloat(price);
+        const currentPrice = parseFloat(price);
         const price24hAgo = parseFloat(historicalData.price24hAgo);
-        const changePercent = ((priceNow - price24hAgo) / price24hAgo) * 100;
-        priceChange24h = changePercent.toFixed(2);
-
-        // Calculate actual volume change percentage if available
+        priceChange24h = ((currentPrice - price24hAgo) / price24hAgo * 100).toFixed(2);
+        
         if (historicalData.volume24hAgo) {
-          const volumeNow = parseFloat(volume);
+          const currentVolume = parseFloat(volume);
           const volume24hAgo = parseFloat(historicalData.volume24hAgo);
-          const volumeChangePercent = ((volumeNow - volume24hAgo) / volume24hAgo) * 100;
-          volumeChange24h = volumeChangePercent.toFixed(2);
+          volumeChange24h = ((currentVolume - volume24hAgo) / volume24hAgo * 100).toFixed(2);
         }
-      } else {
-        // If no historical data, use slightly randomized but realistic values
-        // Slightly biased towards positive for a more optimistic view
-        priceChange24h = ((Math.random() - 0.4) * 10).toFixed(2);
-        volumeChange24h = ((Math.random() - 0.3) * 20).toFixed(2);
-
-        // Store current values as historical for next time
-        this.cache.set(historicalKey, {
-          price24hAgo: price,
-          volume24hAgo: volume,
-          timestamp: Date.now()
-        });
       }
-
-      const timestamp = Date.now();
-
-      // Create the market data object
-      const marketData = {
+      
+      // Prepare the market data object
+      const marketData: MarketData = {
         price,
-        volume,
+        volume24h: volume,
         liquidity,
         priceChange24h,
         volumeChange24h,
-        source,
-        confidence,
-        timestamp
+        source: 'Aggregated',
+        confidence: 0.8,
+        timestamp: Date.now()
       };
-
-      // Cache the data
+      
+      // Store in cache
       this.priceCache.set(cacheKey, marketData);
-
+      
       return marketData;
     } catch (error) {
-      console.error(`Error getting market data for ${token.symbol}:`, error);
-
-      // If we have cached data, return it with reduced confidence
-      if (cachedData) {
-        return {
-          ...cachedData,
-          confidence: Math.max(0.1, (cachedData.confidence || 0.5) * 0.5), // Reduce confidence by half, minimum 0.1
-          source: `${cachedData.source || 'Unknown'} (Stale)`
+      console.error(`Error fetching market data for ${token.symbol}:`, error);
+      
+      // Fall back to mock data if needed
+      if (this.mockPrices[token.symbol]) {
+        const basePrice = this.mockPrices[token.symbol];
+        const noise = (Math.random() - 0.5) * 0.1 * basePrice;
+        const price = (basePrice + noise).toFixed(2);
+        
+        let volume = '0';
+        if (this.mockVolumes[token.symbol]) {
+          volume = (this.mockVolumes[token.symbol] * (0.9 + Math.random() * 0.2)).toFixed(0);
+        }
+        
+        const mockData: MarketData = {
+          price,
+          volume24h: volume,
+          liquidity: (parseInt(volume) * 5).toFixed(0),
+          timestamp: Date.now(),
+          source: 'Mock',
+          confidence: 0.7 + Math.random() * 0.2
         };
+        
+        return mockData;
       }
-
-      // If all else fails, return mock data
-      const timestamp = Date.now();
-      const price = this.mockPrices[token.symbol] || (Math.random() * 99.9 + 0.1).toFixed(2);
-      const volume = this.mockVolumes[token.symbol] || (Math.random() * 990000 + 10000).toFixed(0);
-
-      return {
-        price,
-        volume,
-        liquidity: (parseFloat(volume) * 5).toFixed(0),
-        priceChange24h: ((Math.random() - 0.4) * 10).toFixed(2),
-        volumeChange24h: ((Math.random() - 0.3) * 20).toFixed(2),
-        source: 'Fallback',
-        confidence: 0.1,
-        timestamp
-      };
+      
+      return null;
     }
   }
 
@@ -401,6 +411,36 @@ export class MarketDataService {
     }
 
     return tokens;
+  }
+
+  /**
+   * Creates a Token-like object from a string input (symbol or address)
+   * @param input Token symbol or address as string
+   * @returns A Token-like object
+   */
+  private getTokenFromStringInput(input: string): Token {
+    // Check if input looks like an address
+    const isAddress = input.startsWith('0x') && input.length === 42;
+    
+    if (isAddress) {
+      const symbol = this.getSymbolFromAddress(input);
+      return {
+        symbol,
+        name: symbol,
+        address: input,
+        decimals: 18, // Default to 18 decimals
+        chainId: 1    // Default to Ethereum mainnet
+      };
+    } else {
+      // Assume it's a symbol
+      return {
+        symbol: input,
+        name: input,
+        address: `${input.toLowerCase()}_address`, // Generate a fake address
+        decimals: 18, // Default to 18 decimals
+        chainId: 1    // Default to Ethereum mainnet
+      };
+    }
   }
 
   private getCacheKey(token: Token, quoteToken?: Token): string {
@@ -459,5 +499,24 @@ export class MarketDataService {
     // Use a deterministic approach based on the address to always return the same symbol
     const sum = address.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return symbols[sum % symbols.length];
+  }
+
+  private async getHistoricalData(token: Token, quoteToken: Token): Promise<MarketData | null> {
+    // This is a mock implementation - in a real system, this would call historical APIs
+    const cacheKey = this.getCacheKey(token, quoteToken);
+    const cachedData = this.cache.get(cacheKey);
+    
+    if (!cachedData) return null;
+    
+    // Create mock historical data based on current cached data
+    const price = parseFloat(cachedData.price);
+    const volume = cachedData.volume24h;
+    
+    // Return a complete MarketData object with historical info
+    return {
+      ...cachedData,
+      price24hAgo: (price * (1 - (Math.random() * 0.1 - 0.05))).toFixed(2),
+      volume24hAgo: volume
+    };
   }
 }

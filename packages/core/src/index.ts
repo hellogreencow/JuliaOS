@@ -5,7 +5,7 @@
  */
 
 // Base components
-export { BaseAgent } from './agents/BaseAgent';
+export { BaseAgent } from './agent/BaseAgent';
 export { SwarmAgent, type SwarmAgentConfig } from './agents/SwarmAgent';
 export { Skill } from './skills/Skill';
 

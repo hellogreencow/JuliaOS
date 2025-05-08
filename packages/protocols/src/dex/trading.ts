@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { MarketDataService } from './market-data';
 import { Token } from '../tokens/types';
-import { UniswapV3Service } from './uniswap-v3';
+import { UniswapV3Service } from './uniswap';
 
 export interface Position {
   id: string;

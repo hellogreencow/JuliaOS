@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import { ChainId, TransactionStatus, TransactionType } from '../types';
+import { ChainId } from '../types';
+import { TransactionStatus, TransactionType } from '../types/index';
 import { getProvider } from '../providers';
 import { getExplorer } from '../explorers';
 import { logger } from '../utils/logger';

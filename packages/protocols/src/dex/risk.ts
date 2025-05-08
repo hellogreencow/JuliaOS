@@ -109,16 +109,19 @@ export class RiskManager {
     this.dailyPnL = (BigInt(this.dailyPnL) + BigInt(pnl)).toString();
   }
 
-  getRiskMetrics(): {
+  async getRiskMetrics(): Promise<{
     totalExposure: string;
     dailyPnL: string;
     drawdown: number;
     openPositions: number;
-  } {
+  }> {
+    const totalExposure = await this.calculateTotalExposure();
+    const drawdown = await this.calculateDrawdown();
+    
     return {
-      totalExposure: this.calculateTotalExposure().toString(),
+      totalExposure: totalExposure.toString(),
       dailyPnL: this.dailyPnL,
-      drawdown: this.calculateDrawdown(),
+      drawdown: drawdown,
       openPositions: this.positionManager.getOpenPositions().length
     };
   }

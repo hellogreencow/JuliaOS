@@ -1,7 +1,22 @@
 import { ethers } from 'ethers';
 import { UniswapV3DEX } from '../dex/uniswap-v3';
 import { Token } from '../tokens/types';
-import { JuliaOS } from '../../julia-bridge/src/JuliaOS';
+
+// Mock implementation of JuliaOS instead of importing from non-existent path
+class JuliaOS {
+  async createSwarm(config: any) {
+    console.log('Creating swarm with config:', config);
+    return { id: 'mock-swarm-' + Date.now() };
+  }
+  
+  async optimizeSwarm(swarm: any, data: any) {
+    console.log('Optimizing swarm with data:', data);
+    return {
+      action: Math.random() > 0.5 ? 'buy' : 'sell',
+      confidence: Math.random()
+    };
+  }
+}
 
 async function main() {
   // Initialize DEX
@@ -55,9 +70,9 @@ async function main() {
   const tradingParams = {
     tokenIn: USDC,
     tokenOut: WETH,
-    amountIn: ethers.utils.parseUnits('1000', USDC.decimals).toString(), // 1000 USDC
+    amountIn: ethers.parseUnits('1000', USDC.decimals).toString(), // 1000 USDC
     maxSlippage: 0.5,
-    minLiquidity: ethers.utils.parseEther('100').toString() // 100 ETH
+    minLiquidity: ethers.parseUnits('100', 18).toString() // 100 ETH
   };
 
   // Main trading loop

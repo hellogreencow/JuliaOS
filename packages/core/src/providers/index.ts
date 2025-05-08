@@ -1,4 +1,5 @@
-import { ChainId, Provider } from '../types';
+import { ChainId } from '../types';
+import { Provider } from '../types/index';
 import { logger } from '../utils/logger';
 
 /**

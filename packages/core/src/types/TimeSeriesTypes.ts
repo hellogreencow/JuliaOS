@@ -37,6 +37,16 @@ export interface MultivariateTimeSeries {
   metadata?: Record<string, any>;
 }
 
+// ===== Feature Extraction Types =====
+
+/**
+ * Result of time series feature extraction
+ */
+export interface FeatureExtractionResult {
+  features: Record<string, number>;
+  featureDescriptions: Record<string, string>;
+}
+
 // ===== Decomposition Types =====
 
 /**

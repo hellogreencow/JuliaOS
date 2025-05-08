@@ -47,7 +47,7 @@ const os = __importStar(require("os"));
 const events_1 = require("events");
 const ws_1 = __importDefault(require("ws"));
 const uuid_1 = require("uuid");
-const node_fetch_1 = __importDefault(require("node-fetch"));
+// import fetch from 'node-fetch';
 const cross_chain_commands_1 = require("./cross-chain-commands");
 class JuliaBridge extends events_1.EventEmitter {
     constructor(config = {}) {
@@ -342,7 +342,7 @@ class JuliaBridge extends events_1.EventEmitter {
         else {
             // Fallback to HTTP if WebSocket is not available
             try {
-                const response = await (0, node_fetch_1.default)(this.config.apiUrl, {
+                const response = await fetch(this.config.apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -388,7 +388,7 @@ class JuliaBridge extends events_1.EventEmitter {
     async getHealth() {
         if (this.config.useExistingServer) {
             try {
-                const response = await (0, node_fetch_1.default)(this.config.healthUrl);
+                const response = await fetch(this.config.healthUrl);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }

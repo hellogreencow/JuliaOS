@@ -250,7 +250,7 @@ export class JuliaBridge extends EventEmitter {
       });
 
       // Set up process event handlers
-      this.juliaProcess.stdout.on('data', (data: Buffer) => {
+      this.juliaProcess?.stdout?.on('data', (data: Buffer) => {
         const message = data.toString().trim();
         if (message.includes('Server started')) {
           this.connectWebSocket();
@@ -260,16 +260,16 @@ export class JuliaBridge extends EventEmitter {
         }
       });
 
-      this.juliaProcess.stderr.on('data', (data: Buffer) => {
+      this.juliaProcess?.stderr?.on('data', (data: Buffer) => {
         console.error('Julia error:', data.toString());
       });
 
-      this.juliaProcess.on('error', (error: Error) => {
+      this.juliaProcess?.on('error', (error: Error) => {
         console.error('Failed to start Julia process:', error);
         this.handleError(error);
       });
 
-      this.juliaProcess.on('exit', (code: number) => {
+      this.juliaProcess?.on('exit', (code: number) => {
         console.log(`Julia process exited with code ${code}`);
         this.handleDisconnect();
       });
@@ -481,7 +481,7 @@ export class JuliaBridge extends EventEmitter {
   /**
    * Execute arbitrary Julia code
    */
-  async executeJuliaCode(code: string): Promise<any> {
+  async executeCode(code: string): Promise<any> {
     if (!this.isInitialized) {
       throw new JuliaBridgeError('Julia bridge is not initialized', 'NOT_INITIALIZED');
     }
@@ -799,156 +799,6 @@ export class JuliaBridge extends EventEmitter {
   }
 
   /**
-   * Start the Julia process
-   */
-  private async startJuliaProcess(): Promise<void> {
-    try {
-      // Set up Julia environment variables
-      if (this.config.options?.projectPath) {
-        this.config.options.env = {
-          ...this.config.options.env,
-          JULIA_PROJECT: this.config.options.projectPath
-        };
-      }
-
-      if (this.config.options?.depotPath) {
-        this.config.options.env = {
-          ...this.config.options.env,
-          JULIA_DEPOT_PATH: this.config.options.depotPath
-        };
-      }
-
-      // Determine the Julia project path more robustly with platform-specific handling
-      let juliaProjectPath;
-      if (process.platform === 'win32') {
-        // Windows path handling
-        juliaProjectPath = path.resolve(process.cwd(), 'packages', 'julia-bridge');
-        
-        // Fix Windows path separators
-        this.config.scriptPath = this.config.scriptPath.replace(/\\/g, '/');
-      } else {
-        // Unix path handling
-        juliaProjectPath = path.join(process.cwd(), 'packages', 'julia-bridge');
-      }
-      
-      // Check if Julia environment exists with better error handling
-      const projectTomlPath = path.join(juliaProjectPath, 'Project.toml');
-      if (!fs.existsSync(projectTomlPath)) {
-        throw new JuliaBridgeError(
-          `Julia project environment not found at ${projectTomlPath}. Check that Julia is properly installed.`,
-          'PROJECT_NOT_FOUND'
-        );
-      }
-
-      // Prepare Julia startup script
-      const initScript = path.join(juliaProjectPath, 'src', 'JuliaOS.jl');
-      
-      // Ensure the script exists
-      if (!fs.existsSync(initScript)) {
-        throw new JuliaBridgeError(
-          `Julia initialization script not found at ${initScript}`,
-          'SCRIPT_NOT_FOUND'
-        );
-      }
-
-      const juliaArgs = [
-        `--project=${juliaProjectPath}`,
-        '-e',
-        `include("${initScript.replace(/\\/g, '\\\\')}")`
-      ];
-      
-      if (this.config.options?.debug) {
-        console.log(`Starting Julia process with: ${this.config.juliaPath} ${juliaArgs.join(' ')}`);
-      }
-      
-      // Set up process environment
-      const processEnv = {
-        ...process.env,
-        ...this.config.options?.env
-      };
-      
-      // Start Julia process with improved error handling
-      this.juliaProcess = spawn(this.config.juliaPath, juliaArgs, {
-        env: processEnv,
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-      
-      // Set up event handlers with better error logging
-      if (this.juliaProcess.stdout) {
-        this.juliaProcess.stdout.on('data', (data: Buffer) => this.handleJuliaOutput(data));
-      } else {
-        throw new JuliaBridgeError('Julia process stdout is not available', 'PROCESS_ERROR');
-      }
-
-      if (this.juliaProcess.stderr) {
-        this.juliaProcess.stderr.on('data', (data: Buffer) => {
-          const errorMsg = data.toString().trim();
-          if (this.config.options?.debug || errorMsg.includes('ERROR')) {
-            console.error(`Julia stderr: ${errorMsg}`);
-          }
-          if (errorMsg.includes('ERROR')) {
-            this.emit('error', new JuliaBridgeError(`Julia error: ${errorMsg}`, 'JULIA_STDERR'));
-          }
-        });
-      }
-
-      this.juliaProcess.on('close', (code: number | null) => {
-        this.isInitialized = false;
-        console.log(`Julia process closed with code ${code}`);
-        this.emit('disconnected', { code });
-        
-        // Handle reconnection
-        if (code !== 0 && this.autoReconnect && !this.isReconnecting) {
-          this.handleReconnect();
-        }
-      });
-
-      this.juliaProcess.on('error', (error: Error) => {
-        console.error('Julia process error:', error);
-        this.emit('error', new JuliaBridgeError(`Julia process error: ${error.message}`, 'PROCESS_ERROR'));
-        this.isInitialized = false;
-        
-        if (this.autoReconnect && !this.isReconnecting) {
-          this.handleReconnect();
-        }
-      });
-      
-      // Initialize the WebSocket connection if needed
-      if (this.config.port > 0) {
-        this.connectWebSocket();
-      }
-    } catch (error: any) {
-      console.error('Failed to start Julia process:', error);
-      throw new JuliaBridgeError(
-        `Failed to start Julia process: ${error.message}`,
-        'PROCESS_START_ERROR'
-      );
-    }
-  }
-
-  /**
-   * Handle reconnection attempts
-   */
-  private handleReconnect(): void {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-      
-      console.log(`Reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
-      this.emit('reconnecting', { attempt: this.reconnectAttempts, delay });
-      
-      setTimeout(() => {
-        this.initialize().catch(e => {
-          this.emit('error', new JuliaBridgeError(`Reconnect failed: ${e.message}`, 'RECONNECT_FAILED'));
-        });
-      }, delay);
-    } else {
-      console.error(`Failed to reconnect after ${this.reconnectAttempts} attempts`);
-      this.emit('reconnect_failed', { attempts: this.reconnectAttempts });
-    }
-  }
-
-  /**
    * Wait for Julia initialization
    */
   private waitForInitialization(): Promise<void> {
@@ -974,46 +824,6 @@ export class JuliaBridge extends EventEmitter {
         reject(new JuliaBridgeError('Julia process not started', 'PROCESS_NOT_STARTED'));
       }
     });
-  }
-
-  /**
-   * Handle output from Julia process
-   */
-  private handleJuliaOutput(data: Buffer): void {
-    const outputStr = data.toString().trim();
-    
-    if (!outputStr) {
-      return;
-    }
-    
-    // Log all output for debugging
-    this.emit('stdout', outputStr);
-    
-    try {
-      // Try to parse as JSON
-      const response = JSON.parse(outputStr);
-      
-      if (response.id && this.pendingCommands.has(response.id)) {
-        const { resolve, reject, timeout } = this.pendingCommands.get(response.id)!;
-        clearTimeout(timeout);
-        this.pendingCommands.delete(response.id);
-        
-        if (response.error) {
-          reject(new JuliaBridgeError(response.error.message || 'Unknown Julia error', response.error.code || 'JULIA_ERROR'));
-        } else {
-          resolve(response.result);
-        }
-      } else if (response.event) {
-        // Handle events from Julia
-        this.emit(response.event, response.data);
-      }
-    } catch (error) {
-      // Not JSON or invalid JSON
-      if (outputStr.includes('ERROR:')) {
-        this.emit('error', new JuliaBridgeError(`Julia error: ${outputStr}`, 'JULIA_RUNTIME_ERROR'));
-      }
-      // Otherwise, just log as debug output
-    }
   }
 
   /**
@@ -1152,149 +962,6 @@ export class JuliaBridge extends EventEmitter {
   }
 
   /**
-   * Handle output from Julia process with improved error handling
-   */
-  private handleJuliaOutput(data: Buffer): void {
-    const outputStr = data.toString().trim();
-    
-    if (!outputStr) {
-      return;
-    }
-    
-    // Log all output for debugging
-    this.emit('stdout', outputStr);
-    
-    try {
-      // Try to parse as JSON
-      const response = JSON.parse(outputStr);
-      
-      if (response.id && this.pendingCommands.has(response.id)) {
-        const { resolve, reject, timeout } = this.pendingCommands.get(response.id)!;
-        clearTimeout(timeout);
-        this.pendingCommands.delete(response.id);
-        
-        if (response.error) {
-          // Enhanced error handling with error codes
-          const errorCode = response.error.code || 'JULIA_ERROR';
-          const errorMessage = response.error.message || 'Unknown Julia error';
-          
-          // Log error for monitoring
-          console.error(`Julia error (${errorCode}): ${errorMessage}`);
-          
-          reject(new JuliaBridgeError(errorMessage, errorCode));
-        } else {
-          // Apply validation to the result before resolving
-          try {
-            // Validate result format based on expected type
-            resolve(response.result);
-          } catch (validationError: any) {
-            reject(new JuliaBridgeError(`Result validation failed: ${validationError.message}`, 'VALIDATION_ERROR'));
-          }
-        }
-      } else if (response.event) {
-        // Handle events from Julia - these are asynchronous notifications
-        this.emit(response.event, response.data);
-      } else if (response.id) {
-        // Response for unknown command ID - might be a late response after timeout
-        console.warn(`Received response for unknown command ID: ${response.id}`);
-      }
-    } catch (error: any) {
-      // Not JSON or invalid JSON
-      if (outputStr.includes('ERROR:')) {
-        const errorMessage = outputStr.trim();
-        console.error(`Julia runtime error: ${errorMessage}`);
-        this.emit('error', new JuliaBridgeError(`Julia error: ${errorMessage}`, 'JULIA_RUNTIME_ERROR'));
-      } else if (outputStr.includes('WARNING:')) {
-        // Handle warnings separately
-        const warningMessage = outputStr.trim();
-        console.warn(`Julia warning: ${warningMessage}`);
-        this.emit('warning', warningMessage);
-      }
-      // Otherwise, just log as debug output
-    }
-  }
-
-  /**
-   * Handle reconnection attempts with improved error handling
-   */
-  private handleReconnect(): void {
-    // Don't try to reconnect if already reconnecting
-    if (this.isReconnecting) {
-      return;
-    }
-    
-    this.isReconnecting = true;
-    
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-      
-      console.log(`Reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
-      this.emit('reconnecting', { attempt: this.reconnectAttempts, delay });
-      
-      setTimeout(() => {
-        // Clean up any existing process to avoid resource leaks
-    if (this.juliaProcess) {
-          try {
-            this.juliaProcess.kill('SIGTERM');
-          } catch (error) {
-            // Ignore errors when killing process
-          }
-      this.juliaProcess = null;
-    }
-    
-        this.isReconnecting = false;
-        
-        // Try to initialize again
-        this.initialize().then(() => {
-          console.log('Reconnection successful');
-          this.emit('reconnected');
-          
-          // Restore state - restart all active swarms
-          this.restoreState();
-        }).catch(e => {
-          this.isReconnecting = false;
-          this.emit('error', new JuliaBridgeError(`Reconnect failed: ${e.message}`, 'RECONNECT_FAILED'));
-          
-          // Try again if we haven't reached max attempts
-          if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.handleReconnect();
-          } else {
-            console.error(`Failed to reconnect after ${this.reconnectAttempts} attempts`);
-            this.emit('reconnect_failed', { attempts: this.reconnectAttempts });
-          }
-        });
-      }, delay);
-    } else {
-      this.isReconnecting = false;
-      console.error(`Failed to reconnect after ${this.reconnectAttempts} attempts`);
-      this.emit('reconnect_failed', { attempts: this.reconnectAttempts });
-    }
-  }
-
-  /**
-   * Restore state after reconnection
-   */
-  private async restoreState(): Promise<void> {
-    // Recreate all active swarms
-    const activeSwarms = [...this.activeSwarms.entries()];
-    
-    // Clear the active swarms map
-    this.activeSwarms.clear();
-    
-    // Recreate each swarm
-    for (const [swarmId, swarmConfig] of activeSwarms) {
-      try {
-        // Create a new swarm with the same configuration
-        await this.createSwarm(swarmConfig);
-        console.log(`Restored swarm: ${swarmId}`);
-    } catch (error) {
-        console.error(`Failed to restore swarm ${swarmId}:`, error);
-      }
-    }
-  }
-
-  /**
    * Check the health of the Julia process and bridge
    */
   async checkHealth(): Promise<{
@@ -1331,5 +998,27 @@ export class JuliaBridge extends EventEmitter {
         lastHeartbeat: this.lastHeartbeat > 0 ? this.lastHeartbeat : undefined
       }
     };
+  }
+
+  /**
+   * Handle reconnection attempts
+   */
+  private handleReconnect(): void {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+      
+      console.log(`Reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
+      this.emit('reconnecting', { attempt: this.reconnectAttempts, delay });
+      
+      setTimeout(() => {
+        this.initialize().catch(e => {
+          this.emit('error', new JuliaBridgeError(`Reconnect failed: ${e.message}`, 'RECONNECT_FAILED'));
+        });
+      }, delay);
+    } else {
+      console.error(`Failed to reconnect after ${this.reconnectAttempts} attempts`);
+      this.emit('reconnect_failed', { attempts: this.reconnectAttempts });
+    }
   }
 } 

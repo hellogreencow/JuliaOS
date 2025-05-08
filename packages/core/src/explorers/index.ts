@@ -1,4 +1,5 @@
-import { ChainId, Explorer } from '../types';
+import { ChainId } from '../types';
+import { Explorer } from '../types/index';
 import { logger } from '../utils/logger';
 
 /**

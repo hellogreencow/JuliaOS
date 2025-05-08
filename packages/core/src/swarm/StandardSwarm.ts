@@ -14,6 +14,7 @@ export interface StandardSwarmConfig extends SwarmConfig {
 export class StandardSwarm extends Swarm {
   private router: SwarmRouter;
   private updateInterval?: NodeJS.Timeout;
+  private llmProvider: LLMProvider | null = null;
   
   /**
    * Create a new StandardSwarm

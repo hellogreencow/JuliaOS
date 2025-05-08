@@ -2,7 +2,22 @@ import { ethers } from 'ethers';
 import { UniswapV3Service } from './uniswap';
 import { MarketDataService } from './market-data';
 import { RiskManager } from './risk';
-import { PositionManager } from './position';
+import { PositionManager, PositionParams } from './position';
+import { Token } from '../tokens/types';
+
+// Helper function to create or get Token objects
+function getToken(tokenInput: string | Token): Token {
+  if (typeof tokenInput === 'string') {
+    return {
+      symbol: tokenInput,
+      name: tokenInput,
+      address: tokenInput, // Assuming tokenInput could be an address
+      decimals: 18, // Default
+      chainId: 1    // Default to Ethereum mainnet
+    };
+  }
+  return tokenInput;
+}
 
 export interface ExecutionParams {
   gasLimit: number;
@@ -13,7 +28,7 @@ export interface ExecutionParams {
 }
 
 export interface OrderParams {
-  token: string;
+  token: string | Token;
   size: string;
   leverage: number;
   stopLoss?: string;
@@ -49,9 +64,12 @@ export class ExecutionManager {
 
   async executeOrder(params: OrderParams): Promise<{ success: boolean; txHash?: string; error?: string }> {
     try {
-      // Check risk parameters
+      // Convert to Token object if needed
+      const token = getToken(params.token);
+
+      // Check risk parameters - pass token.symbol to match risk manager's signature
       const riskCheck = await this.riskManager.canOpenPosition(
-        params.token,
+        token.symbol,
         params.size,
         params.leverage
       );
@@ -61,13 +79,13 @@ export class ExecutionManager {
       }
 
       // Get current market data
-      const marketData = await this.marketData.getMarketData(params.token);
+      const marketData = await this.marketData.getMarketData(token);
       if (!marketData) {
         return { success: false, error: 'Failed to get market data' };
       }
 
       // Calculate execution price with slippage
-      const executionPrice = this.calculateExecutionPrice(marketData.price, params.size);
+      const executionPrice = this.calculateExecutionPrice(parseFloat(marketData.price), params.size);
       const minPrice = executionPrice * (1 - this.params.maxSlippage / 100);
       const maxPrice = executionPrice * (1 + this.params.maxSlippage / 100);
 
@@ -79,35 +97,38 @@ export class ExecutionManager {
       };
 
       // Execute the trade
-      const tx = await this.uniswap.swapExactTokensForTokens(
-        params.token,
+      const swapResult = await this.uniswap.swapExactTokensForTokens(
+        token,
+        getToken(ethers.ZeroAddress), // Placeholder - replace with actual token to swap to
         params.size,
-        minPrice,
-        maxPrice,
-        txParams
+        minPrice.toString(),
+        this.params.maxSlippage
       );
 
-      // Wait for confirmation
-      const receipt = await tx.wait(this.params.minConfirmations);
-      if (!receipt) {
+      // Transaction is already confirmed, so no need to wait
+      if (!swapResult.transactionHash) {
         return { success: false, error: 'Transaction failed' };
       }
 
-      // Update position
-      await this.positionManager.openPosition({
-        token: params.token,
+      // Update position - create a proper PositionParams object
+      const positionParams: PositionParams = {
+        token: token,
         size: params.size,
-        entryPrice: executionPrice,
         leverage: params.leverage,
+        side: 'long', // Default to long - could be parameterized in OrderParams
         stopLoss: params.stopLoss,
-        takeProfit: params.takeProfit,
-        txHash: receipt.hash,
-      });
+        takeProfit: params.takeProfit
+      };
+      
+      const position = await this.positionManager.openPosition(positionParams);
 
-      return { success: true, txHash: receipt.hash };
+      return { success: true, txHash: swapResult.transactionHash };
     } catch (error) {
       console.error('Order execution failed:', error);
-      return { success: false, error: error.message };
+      if (error instanceof Error) {
+        return { success: false, error: error.message };
+      }
+      return { success: false, error: 'Unknown execution error' };
     }
   }
 
@@ -119,13 +140,13 @@ export class ExecutionManager {
       }
 
       // Get current market data
-      const marketData = await this.marketData.getMarketData(position.token.address);
+      const marketData = await this.marketData.getMarketData(position.token);
       if (!marketData) {
         return { success: false, error: 'Failed to get market data' };
       }
 
       // Calculate execution price with slippage
-      const executionPrice = this.calculateExecutionPrice(marketData.price, position.size);
+      const executionPrice = this.calculateExecutionPrice(parseFloat(marketData.price), position.size);
       const minPrice = executionPrice * (1 - this.params.maxSlippage / 100);
       const maxPrice = executionPrice * (1 + this.params.maxSlippage / 100);
 
@@ -136,28 +157,30 @@ export class ExecutionManager {
         maxPriorityFeePerGas: ethers.parseUnits(this.params.priorityFee, 'gwei'),
       };
 
-      // Execute the trade
-      const tx = await this.uniswap.swapExactTokensForTokens(
-        position.token.address,
+      // Execute the trade (swap back to paired token)
+      const swapResult = await this.uniswap.swapExactTokensForTokens(
+        position.token,
+        getToken(ethers.ZeroAddress), // Placeholder - replace with actual token to swap to
         position.size,
-        minPrice,
-        maxPrice,
-        txParams
+        minPrice.toString(),
+        this.params.maxSlippage
       );
 
-      // Wait for confirmation
-      const receipt = await tx.wait(this.params.minConfirmations);
-      if (!receipt) {
+      // Transaction is already confirmed, no need to wait
+      if (!swapResult.transactionHash) {
         return { success: false, error: 'Transaction failed' };
       }
 
-      // Update position
-      await this.positionManager.closePosition(positionId, receipt.hash);
+      // Update position - only pass positionId as required
+      await this.positionManager.closePosition(positionId);
 
-      return { success: true, txHash: receipt.hash };
+      return { success: true, txHash: swapResult.transactionHash };
     } catch (error) {
       console.error('Position close failed:', error);
-      return { success: false, error: error.message };
+      if (error instanceof Error) {
+        return { success: false, error: error.message };
+      }
+      return { success: false, error: 'Unknown execution error' };
     }
   }
 

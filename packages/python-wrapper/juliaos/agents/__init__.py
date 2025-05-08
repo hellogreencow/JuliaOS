@@ -7,7 +7,7 @@ from .agent import Agent
 from .agent_types import AgentType, AgentStatus
 from .task import Task
 from .specialized import TradingAgent, MonitorAgent, ArbitrageAgent
-from .messaging import AgentMessaging
+# from .messaging import AgentMessaging
 from .collaboration import AgentCollaboration
 from .blockchain_integration import AgentBlockchainIntegration
 from .specialization import AgentSkills, Skill, SkillCategory, SkillLevel, SpecializationPath
@@ -21,7 +21,7 @@ __all__ = [
     "TradingAgent",
     "MonitorAgent",
     "ArbitrageAgent",
-    "AgentMessaging",
+    # "AgentMessaging",  # Commented out until implemented
     "AgentCollaboration",
     "AgentBlockchainIntegration",
     "AgentSkills",

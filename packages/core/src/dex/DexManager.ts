@@ -1,17 +1,20 @@
 import { Connection } from '@solana/web3.js';
+import { ethers } from 'ethers';
 import { ChainId, TokenAmount } from '../types';
 import { logger } from '../utils/logger';
 import { JupiterDex } from './jupiter';
 import { ChainlinkPriceFeed } from './chainlink';
+import { ConnectionAdapter } from '../utils/ConnectionAdapter';
 
 export interface SwapReceipt {
   signature: string;
   status: 'pending' | 'confirmed' | 'failed';
+  hash: string;
 }
 
 export class DexManager {
   private static instance: DexManager;
-  private connection: Connection | null = null;
+  private connection: ConnectionAdapter | null = null;
   private jupiter: JupiterDex | null = null;
   private chainlink: ChainlinkPriceFeed | null = null;
 
@@ -24,14 +27,23 @@ export class DexManager {
     return DexManager.instance;
   }
 
-  async initializeRouter(chainId: ChainId, routerAddress: string, connection: Connection): Promise<void> {
-    this.connection = connection;
+  async initializeRouter(
+    chainId: ChainId, 
+    routerAddress: string, 
+    connection: Connection | ethers.providers.Provider
+  ): Promise<void> {
+    // Create adapter for the connection
+    this.connection = new ConnectionAdapter(connection);
     
-    // Initialize Jupiter DEX
-    this.jupiter = JupiterDex.getInstance(connection, routerAddress);
-    
-    // Initialize Chainlink price feeds
-    this.chainlink = ChainlinkPriceFeed.getInstance(connection);
+    // Initialize Jupiter DEX for Solana
+    if (chainId === ChainId.SOLANA) {
+      const solanaConnection = this.connection.toSolanaConnection() || 
+                               this.connection.toMockSolanaConnection();
+      this.jupiter = JupiterDex.getInstance(solanaConnection, routerAddress);
+      
+      // Initialize Chainlink price feeds
+      this.chainlink = ChainlinkPriceFeed.getInstance(solanaConnection);
+    }
     
     logger.info(`Initialized DEX router for chain ${chainId}`);
   }
@@ -39,16 +51,20 @@ export class DexManager {
   async getAmountOut(
     chainId: ChainId,
     amountIn: TokenAmount,
-    tokens: string[]
+    tokens: any[]
   ): Promise<TokenAmount> {
     if (!this.jupiter) {
       throw new Error('DEX router not initialized');
     }
 
     try {
+      // Convert PublicKey to string if needed
+      const inputToken = tokens[0].toString ? tokens[0].toString() : tokens[0];
+      const outputToken = tokens[1].toString ? tokens[1].toString() : tokens[1];
+      
       const quote = await this.jupiter.getQuote(
-        tokens[0],
-        tokens[1],
+        inputToken,
+        outputToken,
         amountIn
       );
 
@@ -63,7 +79,7 @@ export class DexManager {
     chainId: ChainId,
     amountIn: TokenAmount,
     amountOutMin: TokenAmount,
-    tokens: string[],
+    tokens: any[],
     deadline: number
   ): Promise<SwapReceipt> {
     if (!this.jupiter || !this.connection) {
@@ -71,29 +87,53 @@ export class DexManager {
     }
 
     try {
-      // Get quote from Jupiter
-      const quote = await this.jupiter.getQuote(
-        tokens[0],
-        tokens[1],
-        amountIn
-      );
+      // Convert PublicKey to string if needed
+      const inputToken = tokens[0].toString ? tokens[0].toString() : tokens[0];
+      const outputToken = tokens[1].toString ? tokens[1].toString() : tokens[1];
+      
+      if (chainId === ChainId.SOLANA) {
+        // Solana/Jupiter implementation
+        // Get quote from Jupiter
+        const quote = await this.jupiter.getQuote(
+          inputToken,
+          outputToken,
+          amountIn
+        );
 
-      // Get swap transaction
-      const swapResponse = await this.jupiter.getSwapTransaction(
-        quote,
-        this.connection.rpcEndpoint
-      );
+        // Get the Solana Connection from the adapter
+        const solanaConnection = this.connection.toSolanaConnection() || 
+                                this.connection.toMockSolanaConnection();
+        
+        // Get swap transaction
+        const swapResponse = await this.jupiter.getSwapTransaction(
+          quote,
+          solanaConnection.rpcEndpoint
+        );
 
-      // Execute swap
-      const signature = await this.jupiter.executeSwap(
-        swapResponse,
-        this.connection
-      );
+        // Execute swap
+        const signature = await this.jupiter.executeSwap(
+          swapResponse,
+          solanaConnection
+        );
 
-      return {
-        signature,
-        status: 'pending'
-      };
+        return {
+          signature,
+          status: 'pending',
+          hash: signature
+        };
+      } else {
+        // EVM implementation (placeholder)
+        logger.info(`Swapping ${amountIn.toString()} of ${inputToken} for ${outputToken}`);
+        
+        // This is a placeholder for EVM swaps
+        const mockSignature = `mock-tx-${Date.now()}`;
+        
+        return {
+          signature: mockSignature,
+          status: 'pending',
+          hash: mockSignature
+        };
+      }
     } catch (error) {
       logger.error(`Error executing swap: ${error}`);
       throw error;

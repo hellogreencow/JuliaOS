@@ -29,10 +29,10 @@ export abstract class BaseAgent extends EventEmitter {
   protected skills: Skill[];
   protected parameters: Record<string, any>;
   protected isRunning: boolean;
-  protected llmProvider?: LLMProvider;
+  protected llmProvider: LLMProvider | null = null;
   protected memory: Map<string, any>;
-  protected memoryConfig: Required<AgentConfig['memoryConfig']>;
-  protected errorConfig: Required<AgentConfig['errorConfig']>;
+  protected memoryConfig: Required<NonNullable<AgentConfig['memoryConfig']>>;
+  protected errorConfig: Required<NonNullable<AgentConfig['errorConfig']>>;
   protected retryCount: Map<string, number>;
 
   constructor(config: AgentConfig) {
@@ -48,20 +48,27 @@ export abstract class BaseAgent extends EventEmitter {
     
     // Initialize memory configuration
     this.memoryConfig = {
-      maxSize: config.memoryConfig?.maxSize || 1000,
-      cleanupInterval: config.memoryConfig?.cleanupInterval || 3600000, // 1 hour
-      retentionPolicy: config.memoryConfig?.retentionPolicy || 'lru'
+      maxSize: config.memoryConfig?.maxSize ?? 1000,
+      cleanupInterval: config.memoryConfig?.cleanupInterval ?? 3600000, // 1 hour
+      retentionPolicy: config.memoryConfig?.retentionPolicy ?? 'lru'
     };
 
     // Initialize error configuration
     this.errorConfig = {
-      maxRetries: config.errorConfig?.maxRetries || 3,
-      backoffStrategy: config.errorConfig?.backoffStrategy || 'exponential',
-      errorHandlers: config.errorConfig?.errorHandlers || {}
+      maxRetries: config.errorConfig?.maxRetries ?? 3,
+      backoffStrategy: config.errorConfig?.backoffStrategy ?? 'exponential',
+      errorHandlers: config.errorConfig?.errorHandlers ?? {}
     };
 
     // Set up memory cleanup interval
     setInterval(() => this.cleanupMemory(), this.memoryConfig.cleanupInterval);
+
+    // Initialize LLM if config is provided
+    if (config.llmConfig) {
+      this.initializeLLM(config.llmConfig).catch(error => {
+        this.emit('error', error);
+      });
+    }
   }
 
   abstract initialize(): Promise<void>;
@@ -112,8 +119,13 @@ Respond with the result in a structured format.`;
 
   protected async initializeLLM(config: LLMConfig): Promise<void> {
     try {
-      this.llmProvider = new OpenAIProvider();
-      await this.llmProvider.initialize(config);
+      // Use factory method to create the appropriate provider
+      const provider = config.provider?.toLowerCase() === 'openai' 
+        ? new OpenAIProvider()
+        : new OpenAIProvider(); // Default to OpenAI for now
+
+      await provider.initialize(config);
+      this.llmProvider = provider;
     } catch (error) {
       this.emit('error', error);
       throw error;

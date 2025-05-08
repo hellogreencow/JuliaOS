@@ -76,7 +76,7 @@ export class MonitoringManager {
 
   private async updateMetrics(): Promise<void> {
     try {
-      const riskMetrics = this.riskManager.getRiskMetrics();
+      const riskMetrics = await this.riskManager.getRiskMetrics();
       const executionMetrics = await this.executionManager.getExecutionMetrics();
       const totalPnL = this.positionManager.getTotalPnL();
 

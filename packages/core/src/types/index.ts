@@ -1,5 +1,8 @@
 import { BigNumber } from 'ethers';
 
+// For conversion methods
+import * as ethers from 'ethers';
+
 /**
  * Supported blockchain network IDs
  */
@@ -85,19 +88,31 @@ export class TokenAmount {
     return new TokenAmount(BigNumber.from(0));
   }
 
-  public add(other: TokenAmount): TokenAmount {
+  public add(other: TokenAmount | number): TokenAmount {
+    if (typeof other === 'number') {
+      return new TokenAmount(this.value.add(BigNumber.from(other)));
+    }
     return new TokenAmount(this.value.add(other.value));
   }
 
-  public sub(other: TokenAmount): TokenAmount {
+  public sub(other: TokenAmount | number): TokenAmount {
+    if (typeof other === 'number') {
+      return new TokenAmount(this.value.sub(BigNumber.from(other)));
+    }
     return new TokenAmount(this.value.sub(other.value));
   }
 
-  public mul(other: TokenAmount): TokenAmount {
+  public mul(other: TokenAmount | number): TokenAmount {
+    if (typeof other === 'number') {
+      return new TokenAmount(this.value.mul(BigNumber.from(other)));
+    }
     return new TokenAmount(this.value.mul(other.value));
   }
 
-  public div(other: TokenAmount): TokenAmount {
+  public div(other: TokenAmount | number): TokenAmount {
+    if (typeof other === 'number') {
+      return new TokenAmount(this.value.div(BigNumber.from(other)));
+    }
     return new TokenAmount(this.value.div(other.value));
   }
 
@@ -119,5 +134,23 @@ export class TokenAmount {
 
   public toNumber(): number {
     return this.value.toNumber();
+  }
+
+  public valueOf(): number {
+    return this.toNumber();
+  }
+
+  /**
+   * Convert to BigNumberish for ethers compatibility
+   */
+  public toBigNumberish(): ethers.BigNumberish {
+    return this.value;
+  }
+
+  /**
+   * Convert to BigNumber for ethers compatibility
+   */
+  public toBigNumber(): ethers.BigNumber {
+    return this.value;
   }
 } 

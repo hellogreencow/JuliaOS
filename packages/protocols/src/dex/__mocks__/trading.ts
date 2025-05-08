@@ -3,7 +3,7 @@ import { MarketDataService } from '../market-data';
 
 export class TradingService {
   constructor(
-    provider: ethers.Provider,
+    provider: any,
     marketData: MarketDataService,
     config?: any
   ) {}
