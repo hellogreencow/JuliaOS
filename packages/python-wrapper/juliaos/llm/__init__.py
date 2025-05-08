@@ -11,6 +11,7 @@ from .llama import LlamaProvider
 from .mistral import MistralProvider
 from .cohere import CohereProvider
 from .gemini import GeminiProvider
+from .openrouter import OpenRouterProvider
 
 # Dictionary of available LLM providers
 AVAILABLE_PROVIDERS = {
@@ -20,11 +21,12 @@ AVAILABLE_PROVIDERS = {
     "mistral": MistralProvider,
     "cohere": CohereProvider,
     "gemini": GeminiProvider,
+    "openrouter": OpenRouterProvider,
 }
 
 __all__ = [
     "LLMProvider", "LLMResponse", "LLMMessage", "LLMRole",
     "OpenAIProvider", "AnthropicProvider", "LlamaProvider",
     "MistralProvider", "CohereProvider", "GeminiProvider",
-    "AVAILABLE_PROVIDERS"
+    "OpenRouterProvider", "AVAILABLE_PROVIDERS"
 ]

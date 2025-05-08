@@ -167,6 +167,7 @@ That's it! This will build and start JuliaOS in Docker containers. The CLI will 
     - `COHERE_API_KEY`: For Cohere integration
     - `MISTRAL_API_KEY`: For Mistral integration
     - `GOOGLE_API_KEY`: For Gemini integration
+    - `OPENROUTER_API_KEY`: For OpenRouter integration (access to multiple LLM providers through a unified API)
 
     Without these keys, certain functionalities will use mock implementations or have limited capabilities.
 

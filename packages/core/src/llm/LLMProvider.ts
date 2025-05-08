@@ -378,6 +378,150 @@ export class AnthropicProvider extends LLMProvider {
   }
 }
 
+export class OpenRouterProvider extends LLMProvider {
+  async initialize(config: LLMConfig): Promise<void> {
+    if (!this.validateConfig(config)) {
+      throw new Error('Invalid OpenRouter configuration');
+    }
+    this.config = config;
+    this.initialized = true;
+    
+    // Test the API key with a simple request
+    try {
+      await axios.get('https://openrouter.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${config.apiKey}`,
+          'HTTP-Referer': 'https://juliaos.ai',  // Your site URL
+          'X-Title': 'JuliaOS'                   // Your app name
+        }
+      });
+    } catch (error) {
+      this.initialized = false;
+      throw new Error('Failed to initialize OpenRouter API: Invalid API key');
+    }
+  }
+
+  async generate(prompt: string, options?: Partial<LLMConfig>): Promise<LLMResponse> {
+    if (!this.initialized) {
+      throw new Error('OpenRouter provider not initialized');
+    }
+
+    const mergedConfig = { ...this.config, ...options };
+    
+    try {
+      const response = await axios.post(
+        `${mergedConfig.baseUrl || 'https://openrouter.ai/api/v1'}/chat/completions`,
+        {
+          model: mergedConfig.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: mergedConfig.temperature,
+          max_tokens: mergedConfig.maxTokens
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${mergedConfig.apiKey}`,
+            'HTTP-Referer': 'https://juliaos.ai',  // Your site URL
+            'X-Title': 'JuliaOS'                   // Your app name
+          },
+          timeout: mergedConfig.timeout || 30000
+        }
+      );
+      
+      const data = response.data;
+      const text = data.choices[0]?.message?.content || '';
+      const finishReason = data.choices[0]?.finish_reason || 'unknown';
+      
+      // Extract usage information
+      const tokens = {
+        prompt: data.usage?.prompt_tokens || 0,
+        completion: data.usage?.completion_tokens || 0,
+        total: data.usage?.total_tokens || 0
+      };
+      
+      // Track usage
+      this.trackUsage({
+        tokens,
+        model: mergedConfig.model,
+        provider: 'openrouter'
+      });
+      
+      return {
+        text,
+        tokens,
+        finishReason,
+        metadata: {
+          id: data.id,
+          model: data.model,
+          created: data.created
+        }
+      };
+    } catch (error) {
+      this.emit('error', error);
+      throw error;
+    }
+  }
+
+  async embed(text: string): Promise<number[]> {
+    if (!this.initialized) {
+      throw new Error('OpenRouter provider not initialized');
+    }
+
+    try {
+      const response = await axios.post(
+        `${this.config.baseUrl || 'https://openrouter.ai/api/v1'}/embeddings`,
+        {
+          model: 'openai/text-embedding-ada-002', // Default embedding model
+          input: text
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.config.apiKey}`,
+            'HTTP-Referer': 'https://juliaos.ai',  // Your site URL
+            'X-Title': 'JuliaOS'                   // Your app name
+          },
+          timeout: this.config.timeout || 30000
+        }
+      );
+      
+      const data = response.data;
+      const embedding = data.data[0]?.embedding || [];
+      
+      // Track usage
+      const tokens = {
+        prompt: data.usage?.prompt_tokens || 0,
+        completion: 0,
+        total: data.usage?.total_tokens || 0
+      };
+      
+      this.trackUsage({
+        tokens,
+        model: 'openai/text-embedding-ada-002',
+        provider: 'openrouter'
+      });
+      
+      return embedding;
+    } catch (error) {
+      this.emit('error', error);
+      throw error;
+    }
+  }
+
+  validateConfig(config: LLMConfig): boolean {
+    return (
+      typeof config.provider === 'string' &&
+      typeof config.model === 'string' &&
+      typeof config.temperature === 'number' &&
+      typeof config.maxTokens === 'number' &&
+      config.temperature >= 0 &&
+      config.temperature <= 1 &&
+      config.maxTokens > 0 &&
+      (config.apiKey !== undefined && typeof config.apiKey === 'string')
+    );
+  }
+}
+
 // Factory to create LLM providers
 export function createLLMProvider(config: LLMConfig): LLMProvider {
   switch (config.provider.toLowerCase()) {
@@ -385,6 +529,8 @@ export function createLLMProvider(config: LLMConfig): LLMProvider {
       return new OpenAIProvider();
     case 'anthropic':
       return new AnthropicProvider();
+    case 'openrouter':
+      return new OpenRouterProvider();
     default:
       throw new Error(`Unsupported LLM provider: ${config.provider}`);
   }

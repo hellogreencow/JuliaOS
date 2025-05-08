@@ -71,7 +71,7 @@ export interface NetworkConfig {
  * LLM configuration interface
  */
 export interface LLMConfig {
-  provider: 'openai' | 'anthropic' | 'google' | 'aws' | 'huggingface';
+  provider: 'openai' | 'anthropic' | 'google' | 'aws' | 'huggingface' | 'openrouter';
   model: string;
   apiKey?: string;
   temperature?: number;
