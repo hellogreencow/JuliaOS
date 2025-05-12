@@ -62,7 +62,7 @@ export class JuliaBridge extends EventEmitter {
    * Initialize the Julia bridge
    */
   public async initialize(): Promise<void> {
-    if (this.initialized) {
+    if (this.isInitialized()) {
       return;
     }
 
@@ -109,6 +109,13 @@ export class JuliaBridge extends EventEmitter {
       this.emit('error', error);
       throw error;
     }
+  }
+
+  /**
+   * Check if JuliaBridge is initialized
+   */
+  public isInitialized(): boolean {
+    return this.initialized;
   }
 
   /**

@@ -1,1 +1,2 @@
-export { DiscordConnector, DiscordConfig } from './DiscordConnector'; 
+export { DiscordConnector } from './DiscordConnector';
+export type { DiscordConfig } from './DiscordConnector';
