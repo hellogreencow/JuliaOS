@@ -31,8 +31,8 @@ export abstract class BaseAgent extends EventEmitter {
   protected isRunning: boolean;
   protected llmProvider?: LLMProvider;
   protected memory: Map<string, any>;
-  protected memoryConfig: Required<AgentConfig['memoryConfig']>;
-  protected errorConfig: Required<AgentConfig['errorConfig']>;
+  protected memoryConfig?: MemoryConfig;
+  protected errorConfig?: ErrorConfig;
   protected retryCount: Map<string, number>;
 
   constructor(config: AgentConfig) {
@@ -61,7 +61,7 @@ export abstract class BaseAgent extends EventEmitter {
     };
 
     // Set up memory cleanup interval
-    setInterval(() => this.cleanupMemory(), this.memoryConfig.cleanupInterval);
+    setInterval(() => this.manageMemory(), this.memoryConfig.cleanupInterval);
   }
 
   abstract initialize(): Promise<void>;
@@ -133,50 +133,51 @@ Respond with the result in a structured format.`;
     }
   }
 
-  protected async cleanupMemory(): Promise<void> {
-    if (this.memory.size <= this.memoryConfig.maxSize) {
+  private manageMemory(): void {
+    if (!this.memoryConfig || this.memory.size <= this.memoryConfig.maxSize) {
       return;
     }
 
+    const entries = Array.from(this.memory.entries());
     if (this.memoryConfig.retentionPolicy === 'lru') {
-      // Remove least recently used items
-      const entries = Array.from(this.memory.entries());
-      entries.sort((a, b) => (a[1].lastAccessed || 0) - (b[1].lastAccessed || 0));
+      // Remove oldest entries first
       const itemsToRemove = entries.slice(0, this.memory.size - this.memoryConfig.maxSize);
-      itemsToRemove.forEach(([key]) => this.memory.delete(key));
+      for (const [key] of itemsToRemove) {
+        this.memory.delete(key);
+      }
     } else {
-      // Remove first in first out
-      const entries = Array.from(this.memory.entries());
+      // Remove newest entries first
       const itemsToRemove = entries.slice(0, this.memory.size - this.memoryConfig.maxSize);
-      itemsToRemove.forEach(([key]) => this.memory.delete(key));
+      for (const [key] of itemsToRemove) {
+        this.memory.delete(key);
+      }
     }
   }
 
-  protected async handleError(error: Error): Promise<void> {
+  private async handleError(error: Error): Promise<void> {
     const errorType = error.constructor.name;
     const currentRetries = this.retryCount.get(errorType) || 0;
-
-    if (currentRetries >= this.errorConfig.maxRetries) {
-      this.emit('error', error);
-      return;
+    
+    if (!this.errorConfig || currentRetries >= this.errorConfig.maxRetries) {
+      throw error;
     }
 
-    const handler = this.errorConfig.errorHandlers[errorType];
-    if (handler) {
-      await handler(error);
-    }
-
-    // Update retry count with backoff
-    const backoffTime = this.calculateBackoff(currentRetries);
     this.retryCount.set(errorType, currentRetries + 1);
-    await new Promise(resolve => setTimeout(resolve, backoffTime));
-  }
+    
+    const handler = this.errorConfig.errorHandlers?.[errorType];
+    if (handler) {
+      try {
+        await handler(error);
+      } catch (handlerError) {
+        this.logger.error(`Error handler failed: ${handlerError}`);
+      }
+    }
 
-  private calculateBackoff(retryCount: number): number {
+    // Implement backoff strategy
     if (this.errorConfig.backoffStrategy === 'linear') {
-      return retryCount * 1000; // Linear backoff: 1s, 2s, 3s, etc.
+      await this.delay(1000 * currentRetries);
     } else {
-      return Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s, 8s, etc.
+      await this.delay(1000 * Math.pow(2, currentRetries));
     }
   }
 
@@ -185,7 +186,7 @@ Respond with the result in a structured format.`;
       value,
       lastAccessed: Date.now()
     });
-    this.cleanupMemory();
+    this.manageMemory();
   }
 
   protected getMemory(key: string): any {

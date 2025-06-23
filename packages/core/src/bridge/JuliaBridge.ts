@@ -1332,4 +1332,45 @@ export class JuliaBridge extends EventEmitter {
       }
     };
   }
+
+  /**
+   * Execute Julia code
+   */
+  async executeCode(code: string): Promise<any> {
+    if (!this.isConnected()) {
+      throw new Error('Julia bridge is not connected');
+    }
+
+    return new Promise((resolve, reject) => {
+      const requestId = this.generateRequestId();
+      
+      // Store the request for response handling
+      this.pendingRequests.set(requestId, { resolve, reject });
+      
+      // Send the code to Julia
+      const message = {
+        id: requestId,
+        type: 'execute',
+        code: code
+      };
+      
+      if (this.juliaProcess && this.juliaProcess.stdin) {
+        this.juliaProcess.stdin.write(JSON.stringify(message) + '\n');
+      } else {
+        reject(new Error('Julia process is not available'));
+      }
+      
+      // Set timeout
+      setTimeout(() => {
+        if (this.pendingRequests.has(requestId)) {
+          this.pendingRequests.delete(requestId);
+          reject(new Error('Julia execution timeout'));
+        }
+      }, 30000);
+    });
+  }
+
+  private generateRequestId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
 } 

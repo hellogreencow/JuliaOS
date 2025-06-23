@@ -1,247 +1,105 @@
-/**
- * Log levels
- */
-export enum LogLevel {
-  DEBUG = 0,
-  INFO = 1,
-  WARN = 2,
-  ERROR = 3,
-  NONE = 4,
-}
+import winston from 'winston';
 
-/**
- * Logger configuration interface
- */
-export interface LoggerConfig {
-  level: LogLevel;
-  enableConsole: boolean;
-  enableTimestamps: boolean;
-  timestampFormat: 'iso' | 'locale' | 'unix';
-  prefix?: string;
-  colors?: boolean;
-}
-
-/**
- * Default logger configuration
- */
-const DEFAULT_CONFIG: LoggerConfig = {
-  level: LogLevel.INFO,
-  enableConsole: true,
-  enableTimestamps: true,
-  timestampFormat: 'iso',
-  colors: true,
+// Custom log levels
+const logLevels = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  http: 3,
+  verbose: 4,
+  debug: 5,
+  silly: 6
 };
 
-/**
- * ANSI color codes for console output
- */
-const COLORS = {
-  reset: '\x1b[0m',
-  black: '\x1b[30m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
-  white: '\x1b[37m',
-  bold: '\x1b[1m',
+// Define colors for each level
+const logColors = {
+  error: 'red',
+  warn: 'yellow',
+  info: 'green',
+  http: 'magenta',
+  verbose: 'grey',
+  debug: 'white',
+  silly: 'rainbow'
 };
 
-/**
- * Logger class for handling application logs
- */
-export class Logger {
-  private config: LoggerConfig;
-  private handlers: Array<(level: LogLevel, message: string, ...args: any[]) => void> = [];
+// Add colors to winston
+winston.addColors(logColors);
 
-  constructor(config: Partial<LoggerConfig> = {}) {
-    this.config = {
-      ...DEFAULT_CONFIG,
-      ...config,
-    };
-  }
+// Create custom format
+const logFormat = winston.format.combine(
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
+  winston.format.colorize({ all: true }),
+  winston.format.printf(
+    (info) => `${info.timestamp} ${info.level}: ${info.message}`
+  )
+);
 
-  /**
-   * Set the log level
-   */
-  public setLevel(level: LogLevel): void {
-    this.config.level = level;
-  }
+// Create winston logger
+class Logger {
+  private winston: winston.Logger;
 
-  /**
-   * Add a custom log handler
-   */
-  public addHandler(handler: (level: LogLevel, message: string, ...args: any[]) => void): void {
-    this.handlers.push(handler);
-  }
-
-  /**
-   * Format a log message with timestamp
-   */
-  private formatMessage(level: LogLevel, message: string): string {
-    let prefix = this.config.prefix ? `[${this.config.prefix}] ` : '';
-    
-    if (this.config.enableTimestamps) {
-      let timestamp = '';
-      
-      switch (this.config.timestampFormat) {
-        case 'iso':
-          timestamp = new Date().toISOString();
-          break;
-        case 'locale':
-          timestamp = new Date().toLocaleString();
-          break;
-        case 'unix':
-          timestamp = Date.now().toString();
-          break;
-      }
-      
-      prefix = `[${timestamp}] ${prefix}`;
-    }
-    
-    let levelStr = '';
-    
-    switch (level) {
-      case LogLevel.DEBUG:
-        levelStr = 'DEBUG';
-        break;
-      case LogLevel.INFO:
-        levelStr = 'INFO';
-        break;
-      case LogLevel.WARN:
-        levelStr = 'WARN';
-        break;
-      case LogLevel.ERROR:
-        levelStr = 'ERROR';
-        break;
-    }
-    
-    return `${prefix}[${levelStr}] ${message}`;
-  }
-
-  /**
-   * Get color code for log level
-   */
-  private getColorForLevel(level: LogLevel): string {
-    if (!this.config.colors) {
-      return '';
-    }
-    
-    switch (level) {
-      case LogLevel.DEBUG:
-        return COLORS.cyan;
-      case LogLevel.INFO:
-        return COLORS.green;
-      case LogLevel.WARN:
-        return COLORS.yellow;
-      case LogLevel.ERROR:
-        return COLORS.red;
-      default:
-        return '';
-    }
-  }
-
-  /**
-   * Log a message with a specific level
-   */
-  private log(level: LogLevel, message: string, ...args: any[]): void {
-    if (level < this.config.level) {
-      return;
-    }
-    
-    const formattedMessage = this.formatMessage(level, message);
-    
-    if (this.config.enableConsole) {
-      const color = this.getColorForLevel(level);
-      const resetColor = this.config.colors ? COLORS.reset : '';
-      
-      switch (level) {
-        case LogLevel.DEBUG:
-          console.debug(`${color}${formattedMessage}${resetColor}`, ...args);
-          break;
-        case LogLevel.INFO:
-          console.info(`${color}${formattedMessage}${resetColor}`, ...args);
-          break;
-        case LogLevel.WARN:
-          console.warn(`${color}${formattedMessage}${resetColor}`, ...args);
-          break;
-        case LogLevel.ERROR:
-          console.error(`${color}${formattedMessage}${resetColor}`, ...args);
-          break;
-      }
-    }
-    
-    // Call custom handlers
-    for (const handler of this.handlers) {
-      try {
-        handler(level, formattedMessage, ...args);
-      } catch (error) {
-        console.error('Error in log handler:', error);
-      }
-    }
-  }
-
-  /**
-   * Log a debug message
-   */
-  public debug(message: string, ...args: any[]): void {
-    this.log(LogLevel.DEBUG, message, ...args);
-  }
-
-  /**
-   * Log an info message
-   */
-  public info(message: string, ...args: any[]): void {
-    this.log(LogLevel.INFO, message, ...args);
-  }
-
-  /**
-   * Log a warning message
-   */
-  public warn(message: string, ...args: any[]): void {
-    this.log(LogLevel.WARN, message, ...args);
-  }
-
-  /**
-   * Log an error message
-   */
-  public error(message: string, ...args: any[]): void {
-    this.log(LogLevel.ERROR, message, ...args);
-  }
-
-  /**
-   * Create a child logger with a prefix
-   */
-  public createChild(prefix: string): Logger {
-    return new Logger({
-      ...this.config,
-      prefix: this.config.prefix ? `${this.config.prefix}:${prefix}` : prefix,
+  constructor(options: winston.LoggerOptions = {}) {
+    this.winston = winston.createLogger({
+      level: process.env.LOG_LEVEL || 'info',
+      levels: logLevels,
+      format: logFormat,
+      transports: [
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple()
+          )
+        }),
+        ...(process.env.NODE_ENV === 'production' ? [
+          new winston.transports.File({
+            filename: 'logs/error.log',
+            level: 'error',
+            format: winston.format.json()
+          }),
+          new winston.transports.File({
+            filename: 'logs/combined.log',
+            format: winston.format.json()
+          })
+        ] : [])
+      ],
+      ...options
     });
   }
+
+  info(message: string, meta?: any): void {
+    this.winston.info(message, meta);
+  }
+
+  error(message: string, meta?: any): void {
+    this.winston.error(message, meta);
+  }
+
+  warn(message: string, meta?: any): void {
+    this.winston.warn(message, meta);
+  }
+
+  debug(message: string, meta?: any): void {
+    this.winston.debug(message, meta);
+  }
+
+  verbose(message: string, meta?: any): void {
+    this.winston.verbose(message, meta);
+  }
+
+  http(message: string, meta?: any): void {
+    this.winston.http(message, meta);
+  }
+
+  silly(message: string, meta?: any): void {
+    this.winston.silly(message, meta);
+  }
 }
 
-// Create default logger instance
-export const logger = new Logger({
-  prefix: 'JuliaOS',
+// Export single logger instance
+const logger = new Logger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: logFormat
 });
 
-// Export default instance
 export default logger;
-
-export const logger = {
-  info: (message: string, ...args: any[]) => {
-    console.log(`[INFO] ${message}`, ...args);
-  },
-  error: (message: string, ...args: any[]) => {
-    console.error(`[ERROR] ${message}`, ...args);
-  },
-  warn: (message: string, ...args: any[]) => {
-    console.warn(`[WARN] ${message}`, ...args);
-  },
-  debug: (message: string, ...args: any[]) => {
-    console.debug(`[DEBUG] ${message}`, ...args);
-  }
-};
-
 export { logger }; 
