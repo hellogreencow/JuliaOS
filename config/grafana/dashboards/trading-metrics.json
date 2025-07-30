@@ -1,0 +1,191 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "JuliaOS Trading Metrics",
+    "tags": ["trading", "juliaos", "performance"],
+    "timezone": "UTC",
+    "refresh": "5s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Trading Performance Overview",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "trading_portfolio_pnl_total",
+            "legendFormat": "Total P&L"
+          },
+          {
+            "expr": "trading_portfolio_sharpe_ratio",
+            "legendFormat": "Sharpe Ratio"
+          },
+          {
+            "expr": "trading_portfolio_drawdown_pct",
+            "legendFormat": "Max Drawdown %"
+          },
+          {
+            "expr": "trading_strategy_win_rate",
+            "legendFormat": "Win Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "green", "value": 2}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Execution Latency Distribution",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, trading_execution_latency_seconds)",
+            "legendFormat": "P50 Latency"
+          },
+          {
+            "expr": "histogram_quantile(0.95, trading_execution_latency_seconds)",
+            "legendFormat": "P95 Latency"
+          },
+          {
+            "expr": "histogram_quantile(0.99, trading_execution_latency_seconds)",
+            "legendFormat": "P99 Latency"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Latency (seconds)",
+            "max": 0.1,
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 0.01,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Agent Health Status",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "up{job=\"trading-agents\"}",
+            "legendFormat": "Agent {{agent_id}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Status",
+            "max": 1,
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Portfolio Value Over Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "trading_portfolio_value_usd",
+            "legendFormat": "Portfolio Value (USD)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Value (USD)",
+            "logBase": 1
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Risk Metrics",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "risk_var_1d_pct",
+            "legendFormat": "1-Day VaR %"
+          },
+          {
+            "expr": "risk_expected_shortfall_pct",
+            "legendFormat": "Expected Shortfall %"
+          },
+          {
+            "expr": "risk_leverage_ratio",
+            "legendFormat": "Leverage Ratio"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Risk Metric",
+            "logBase": 1
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Bridge Performance",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "bridge_health_status",
+            "legendFormat": "{{bridge_name}}"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "bridge_name": "Bridge",
+                "Value": "Status"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "DEX Trading Volume",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "rate(dex_trade_volume_usd_total[5m])",
+            "legendFormat": "{{dex_name}} Volume/min"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Volume (USD/min)",
+            "logBase": 1
+          }
+        ]
+      }
+    ]
+  }
+}

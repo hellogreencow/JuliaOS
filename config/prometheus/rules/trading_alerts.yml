@@ -1,0 +1,150 @@
+groups:
+  - name: trading_critical
+    interval: 5s
+    rules:
+      # Trading Performance Alerts
+      - alert: TradingLatencyHigh
+        expr: histogram_quantile(0.99, trading_execution_latency_seconds) > 0.01
+        for: 30s
+        labels:
+          severity: critical
+          team: trading
+        annotations:
+          summary: "Trading execution latency is above 10ms"
+          description: "P99 trading latency is {{ $value }}s, exceeding 10ms threshold"
+
+      - alert: TradingDrawdownHigh
+        expr: trading_portfolio_drawdown_pct > 5
+        for: 60s
+        labels:
+          severity: critical
+          team: trading
+        annotations:
+          summary: "Portfolio drawdown exceeds 5%"
+          description: "Current drawdown is {{ $value }}%, exceeding risk limits"
+
+      - alert: TradingWinRateLow
+        expr: trading_strategy_win_rate < 0.6
+        for: 300s
+        labels:
+          severity: warning
+          team: trading
+        annotations:
+          summary: "Strategy win rate below 60%"
+          description: "Win rate is {{ $value }}, below target threshold"
+
+      - alert: TradingSharpeRatioLow
+        expr: trading_portfolio_sharpe_ratio < 2.0
+        for: 600s
+        labels:
+          severity: warning
+          team: trading
+        annotations:
+          summary: "Sharpe ratio below target"
+          description: "Sharpe ratio is {{ $value }}, below 2.0 target"
+
+  - name: system_health
+    interval: 10s
+    rules:
+      # Agent Health Alerts
+      - alert: AgentDown
+        expr: up{job="trading-agents"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Trading agent is down"
+          description: "Agent {{ $labels.instance }} has been down for 30s"
+
+      - alert: AgentMemoryHigh
+        expr: agent_memory_usage_bytes / agent_memory_limit_bytes > 0.8
+        for: 60s
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Agent memory usage high"
+          description: "Agent {{ $labels.agent_id }} memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: AgentCPUHigh
+        expr: rate(agent_cpu_usage_seconds_total[5m]) > 0.7
+        for: 120s
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Agent CPU usage high"
+          description: "Agent {{ $labels.agent_id }} CPU usage is {{ $value | humanizePercentage }}"
+
+  - name: infrastructure
+    interval: 30s
+    rules:
+      # System Resource Alerts
+      - alert: SystemMemoryHigh
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.8
+        for: 120s
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "System memory usage high"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: SystemDiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) > 0.9
+        for: 300s
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Disk space critically low"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.mountpoint }}"
+
+  - name: bridge_health
+    interval: 15s
+    rules:
+      # Bridge Connectivity Alerts
+      - alert: BridgeDown
+        expr: bridge_health_status == 0
+        for: 60s
+        labels:
+          severity: critical
+          team: bridges
+        annotations:
+          summary: "Bridge connectivity lost"
+          description: "Bridge {{ $labels.bridge_name }} is unreachable"
+
+      - alert: BridgeLatencyHigh
+        expr: bridge_response_time_seconds > 5
+        for: 120s
+        labels:
+          severity: warning
+          team: bridges
+        annotations:
+          summary: "Bridge latency high"
+          description: "Bridge {{ $labels.bridge_name }} latency is {{ $value }}s"
+
+  - name: dex_health
+    interval: 10s
+    rules:
+      # DEX Integration Alerts
+      - alert: DEXConnectionLost
+        expr: dex_connection_status == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: trading
+        annotations:
+          summary: "DEX connection lost"
+          description: "Connection to {{ $labels.dex_name }} has been lost"
+
+      - alert: DEXSlippageHigh
+        expr: dex_trade_slippage_pct > 1.0
+        for: 60s
+        labels:
+          severity: warning
+          team: trading
+        annotations:
+          summary: "High slippage detected"
+          description: "Slippage on {{ $labels.dex_name }} is {{ $value }}%"

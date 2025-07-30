@@ -1,0 +1,84 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  external_labels:
+    system: 'juliaos-trading'
+    environment: 'production'
+
+rule_files:
+  - "rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Julia Server Metrics
+  - job_name: 'julia-server'
+    static_configs:
+      - targets: ['juliaos-server:8052']
+    metrics_path: '/metrics'
+    scrape_interval: 1s  # High frequency for trading metrics
+    scrape_timeout: 500ms
+
+  # Trading Agent Metrics  
+  - job_name: 'trading-agents'
+    static_configs:
+      - targets: ['juliaos-server:8054']
+    metrics_path: '/agent-metrics'
+    scrape_interval: 1s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.+'
+        replacement: '${1}'
+
+  # System Resource Metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 5s
+
+  # Trading Performance Metrics
+  - job_name: 'trading-performance'
+    static_configs:
+      - targets: ['juliaos-server:8055']
+    metrics_path: '/trading-metrics'
+    scrape_interval: 1s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'trading_(.+)'
+        target_label: __name__
+        replacement: 'juliaos_trading_${1}'
+
+  # Bridge Health Monitoring
+  - job_name: 'bridge-health'
+    static_configs:
+      - targets: ['juliaos-server:8056']
+    metrics_path: '/bridge-health'
+    scrape_interval: 10s
+
+  # DEX Integration Metrics
+  - job_name: 'dex-metrics'
+    static_configs:
+      - targets: ['juliaos-server:8057']
+    metrics_path: '/dex-metrics'
+    scrape_interval: 2s
+
+  # Risk Management Metrics
+  - job_name: 'risk-metrics'
+    static_configs:
+      - targets: ['juliaos-server:8058']
+    metrics_path: '/risk-metrics'
+    scrape_interval: 1s  # Critical for risk monitoring
+
+# Storage configuration for high-frequency trading data
+storage:
+  tsdb:
+    path: /prometheus/data
+    retention.time: 30d
+    retention.size: 50GB
+    min-block-duration: 2m
+    max-block-duration: 10m
