@@ -17,6 +17,7 @@ export initialize, shutdown, get_system_status
 export API, Storage, Swarms, SwarmBase, Types, CommandHandler, Agents
 export TradingAgentSystem, ExecutionEngine, RiskManager, SecurityManager
 export Metrics, Blockchain, DEX, Bridges
+export StrategyEngine, MarketDataEngine, TradingModes
 
 # Core system dependencies
 using Dates
@@ -67,6 +68,15 @@ using .Agents
 
 include("trading/agents/TradingAgentSystem.jl")
 using .TradingAgentSystem
+
+include("trading/StrategyEngine.jl")
+using .StrategyEngine
+
+include("trading/MarketDataEngine.jl")
+using .MarketDataEngine
+
+include("trading/TradingModes.jl")
+using .TradingModes
 
 # Include swarm optimization algorithms
 include("swarm/algorithms/PSO.jl")
@@ -191,7 +201,38 @@ function initialize(;
             return false
         end
         
-        # 5. Initialize High-Performance Execution Engine
+        # 5. Initialize Trading Modes (Paper/Production)
+        @info "📋 Initializing trading modes (defaults to paper trading)..."
+        try
+            TradingModes.initialize_trading_modes()
+            mode_status = TradingModes.is_paper_mode() ? "PAPER TRADING" : "PRODUCTION"
+            @info "✅ Trading mode: $mode_status (Real money protection active)"
+        catch e
+            @error "❌ Failed to initialize trading modes: $e"
+            return false
+        end
+        
+        # 6. Initialize Market Data Engine
+        @info "📈 Initializing real-time market data engine..."
+        try
+            MarketDataEngine.initialize_market_data()
+            @info "✅ Market data engine active (Multiple provider fallback system)"
+        catch e
+            @error "❌ Failed to initialize market data engine: $e"
+            return false
+        end
+        
+        # 7. Initialize Strategy Engine
+        @info "🧠 Initializing AI strategy formation engine..."
+        try
+            StrategyEngine.initialize_strategy_engine()
+            @info "✅ Strategy engine active (Collaborative evolution system)"
+        catch e
+            @error "❌ Failed to initialize strategy engine: $e"
+            return false
+        end
+        
+        # 8. Initialize High-Performance Execution Engine
         @info "⚡ Initializing sub-millisecond execution engine..."
         try
             SYSTEM_STATE.execution_engine = ExecutionEngine.initialize_execution_engine()
@@ -202,7 +243,7 @@ function initialize(;
             return false
         end
         
-        # 6. Initialize AI Trading Team
+        # 9. Initialize AI Trading Team
         if enable_trading
             @info "🤖 Initializing 5-agent AI trading team..."
             try
@@ -222,7 +263,7 @@ function initialize(;
             end
         end
         
-        # 7. Initialize API Server
+        # 10. Initialize API Server
         @info "🌐 Starting API server..."
         try
             # Start API server in background (assuming it's implemented)
@@ -242,6 +283,9 @@ function initialize(;
         @info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         @info "🛡️  Security: ACTIVE (Military-grade authentication & encryption)"
         @info "📊 Monitoring: $(SYSTEM_STATE.monitoring_active ? "ACTIVE" : "DISABLED") (Prometheus/Grafana stack)"
+        @info "📋 Trading Mode: $(TradingModes.is_paper_mode() ? "PAPER" : "PRODUCTION") (Real money protection)"
+        @info "📈 Market Data: ACTIVE (Real-time multi-provider feeds)"
+        @info "🧠 Strategy Engine: ACTIVE (AI collaborative evolution)"
         @info "⚠️  Risk Management: ACTIVE (Circuit breakers & VaR monitoring)"
         @info "⚡ Execution Engine: ACTIVE (Sub-millisecond targeting)"
         @info "🤖 AI Trading Team: $(SYSTEM_STATE.trading_team !== nothing ? "OPERATIONAL" : "DISABLED") (5-agent system)"
