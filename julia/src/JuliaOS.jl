@@ -68,11 +68,20 @@ using .Agents
 include("trading/agents/TradingAgentSystem.jl")
 using .TradingAgentSystem
 
-# Include swarm optimization algorithms (commented out until implemented)
-# include("swarm/algorithms/PSO.jl")
-# include("swarm/algorithms/GWO.jl")
-# include("swarm/algorithms/ACO.jl")
-# include("swarm/algorithms/GA.jl")
+# Include swarm optimization algorithms
+include("swarm/algorithms/PSO.jl")
+using .PSO
+
+include("swarm/algorithms/GWO.jl")
+using .GWO
+
+include("swarm/algorithms/ACO.jl")
+using .ACO
+
+include("swarm/algorithms/GA.jl")
+using .GA
+
+# Additional algorithms (to be implemented)
 # include("swarm/algorithms/WOA.jl")
 # include("swarm/algorithms/DE.jl")
 # include("swarm/algorithms/DEPSO.jl")
