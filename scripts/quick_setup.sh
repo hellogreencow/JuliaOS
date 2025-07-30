@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 print_banner() {
     echo -e "${BLUE}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "🤖 JULIAOS QUICK SETUP - AI TRADING PLATFORM 🤖"
+    echo "🤖 OLIVEROS QUICK SETUP - AI TRADING PLATFORM 🤖"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo -e "${NC}"
 }
@@ -99,7 +99,7 @@ check_dependencies() {
 setup_directories() {
     log_step "Creating required directories..."
     
-    mkdir -p ~/.juliaos/
+    mkdir -p ~/.oliveros/
     mkdir -p julia/db/
     mkdir -p data/logs/
     mkdir -p config/
@@ -177,13 +177,13 @@ initialize_database() {
 # Add the src directory to the path
 push!(LOAD_PATH, joinpath(pwd(), "julia", "src"))
 
-using JuliaOS
+using OliverOS
 
-println("🚀 Initializing JuliaOS System...")
+println("🚀 Initializing OliverOS System...")
 
 # Initialize the complete system
-success = JuliaOS.initialize(
-    storage_path = joinpath(homedir(), ".juliaos", "main.sqlite"),
+success = OliverOS.initialize(
+    storage_path = joinpath(homedir(), ".oliveros", "main.sqlite"),
     enable_trading = true,
     enable_monitoring = true
 )
@@ -193,7 +193,7 @@ if success
     
     # Test market data
     try
-        using JuliaOS.MarketDataEngine
+        using OliverOS.MarketDataEngine
         btc_price = MarketDataEngine.get_real_time_price("BTC/USD")
         if btc_price !== nothing
             println("📈 Market data test: BTC = \$$(round(btc_price.price, digits=2))")
@@ -206,7 +206,7 @@ if success
     
     # Test trading modes
     try
-        using JuliaOS.TradingModes
+        using OliverOS.TradingModes
         mode = TradingModes.is_paper_mode() ? "PAPER" : "PRODUCTION"
         println("💰 Trading mode: $mode")
     catch e
@@ -215,7 +215,7 @@ if success
     
     # Test strategy engine
     try
-        using JuliaOS.StrategyEngine
+        using OliverOS.StrategyEngine
         engine = StrategyEngine.get_strategy_engine()
         println("🧠 Strategy engine: Ready ($(length(engine.library.strategies)) strategies)")
     catch e
@@ -243,7 +243,7 @@ create_env_template() {
     log_step "Creating environment template..."
     
     cat > .env.example << 'EOF'
-# JuliaOS Environment Configuration
+# OliverOS Environment Configuration
 
 # Market Data API Keys (optional but recommended)
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
@@ -258,7 +258,7 @@ ANTHROPIC_API_KEY=your_anthropic_key_here
 # PRODUCTION_UNLOCK_CODE=your_secure_production_code_here
 
 # Database Configuration
-JULIAOS_DB_PATH=~/.juliaos/main.sqlite
+OLIVEROS_DB_PATH=~/.oliveros/main.sqlite
 
 # Monitoring (optional)
 PROMETHEUS_PORT=9090
@@ -277,11 +277,11 @@ create_quick_start_guide() {
     log_step "Creating quick start guide..."
     
     cat > QUICK_START.md << 'EOF'
-# 🚀 JuliaOS Quick Start Guide
+# 🚀 OliverOS Quick Start Guide
 
 ## ✅ Setup Complete!
 
-Your JuliaOS AI Trading Platform is now ready. Here's what you can do:
+Your OliverOS AI Trading Platform is now ready. Here's what you can do:
 
 ### 🎮 Run the AI Collaboration Demo
 ```bash
@@ -298,22 +298,22 @@ This will show you:
 # Start Julia
 julia --project=julia
 
-# Load JuliaOS
-using JuliaOS
+# Load OliverOS
+using OliverOS
 
 # Check system status
-status = JuliaOS.get_system_status()
+status = OliverOS.get_system_status()
 
 # Check market data
-using JuliaOS.MarketDataEngine
+using OliverOS.MarketDataEngine
 price = MarketDataEngine.get_real_time_price("BTC/USD")
 
 # Check trading mode
-using JuliaOS.TradingModes
+using OliverOS.TradingModes
 println("Mode: ", TradingModes.is_paper_mode() ? "PAPER" : "PRODUCTION")
 
 # View strategies
-using JuliaOS.StrategyEngine
+using OliverOS.StrategyEngine
 engine = StrategyEngine.get_strategy_engine()
 println("Strategies: ", length(engine.library.strategies))
 ```
@@ -352,7 +352,7 @@ EOF
 print_summary() {
     echo ""
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}🎉 JULIAOS SETUP COMPLETE! 🎉${NC}"
+    echo -e "${GREEN}🎉 OLIVEROS SETUP COMPLETE! 🎉${NC}"
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     echo -e "${BLUE}🚀 Next Steps:${NC}"

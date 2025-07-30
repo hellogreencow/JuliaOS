@@ -1,7 +1,7 @@
 {
-  "name": "j3os",
+  "name": "oliveros",
   "version": "0.1.0",
-  "description": "J3OS Framework - Web3 Cross Chain/Multi Chain AI Agent/Swarm DeFi Platform",
+  "description": "OliverOS Framework - Weapons-Grade AI Trading Platform with Multi-Agent Intelligence",
   "private": true,
   "type": "commonjs",
   "workspaces": [

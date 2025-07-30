@@ -1,5 +1,5 @@
 """
-JuliaOS - Weapons-Grade AI Trading Platform
+OliverOS - Weapons-Grade AI Trading Platform
 
 A comprehensive, institutional-level trading system featuring:
 - 5-Agent AI Trading Team with inter-agent communication
@@ -10,7 +10,7 @@ A comprehensive, institutional-level trading system featuring:
 - Cross-chain bridge integration
 - High-performance swarm optimization algorithms
 """
-module JuliaOS
+module OliverOS
 
 # Export core functionality
 export initialize, shutdown, get_system_status
@@ -147,7 +147,7 @@ function initialize(;
     security_config::SecurityConfig = SecurityConfig(),
     risk_config::Dict{String, Any} = Dict{String, Any}()
 )
-    @info "🚀 Initializing JuliaOS Weapons-Grade AI Trading Platform"
+    @info "🚀 Initializing OliverOS Weapons-Grade AI Trading Platform"
     @info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
     try

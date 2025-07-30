@@ -1,7 +1,7 @@
 #!/usr/bin/env julia
 
 """
-AI Collaboration Demo - JuliaOS Trading System
+AI Collaboration Demo - OliverOS Trading System
 
 This demo showcases:
 1. Real-time market data integration
@@ -17,7 +17,7 @@ Usage:
 # Add the src directory to the path
 push!(LOAD_PATH, joinpath(@__DIR__, "..", "julia", "src"))
 
-using JuliaOS
+using OliverOS
 using Dates
 using Printf
 
@@ -31,7 +31,7 @@ const API_KEYS_REQUIRED = [
 
 function print_banner()
     println("━" ^ 80)
-    println("🤖 JULIAOS AI COLLABORATION DEMO 🤖")
+    println("🤖 OLIVEROS AI COLLABORATION DEMO 🤖")
     println("━" ^ 80)
     println("This demo will show you how AI agents:")
     println("• 📈 Analyze real-time market data")
@@ -76,17 +76,17 @@ function check_environment()
 end
 
 function initialize_system()
-    println("🚀 Initializing JuliaOS Trading System...")
+    println("🚀 Initializing OliverOS Trading System...")
     println()
     
     # Initialize the complete system
-    success = JuliaOS.initialize(
+    success = OliverOS.initialize(
         enable_trading = true,
         enable_monitoring = true
     )
     
     if !success
-        println("❌ Failed to initialize JuliaOS system")
+        println("❌ Failed to initialize OliverOS system")
         exit(1)
     end
     
@@ -265,7 +265,7 @@ function print_trading_team_status()
     println("🤖 AI Trading Team:")
     
     try
-        team_status = JuliaOS.get_system_status()
+        team_status = OliverOS.get_system_status()
         if haskey(team_status, "trading_team")
             team_info = team_status["trading_team"]
             println("   🟢 Team Status: $(get(team_info, "status", "UNKNOWN"))")
