@@ -24,7 +24,7 @@ using Logging
 using JSON3
 
 # Include core modules
-include("core/types/Types.jl")
+include("core/types/types.jl")
 using .Types
 
 include("core/utils/Metrics.jl") 
@@ -49,8 +49,9 @@ const Swarms = AdvancedSwarm
 include("swarm/SwarmBase.jl")
 using .SwarmBase
 
-include("api/API.jl")
-using .API
+include("api/Handlers.jl")
+using .Handlers
+const API = Handlers
 
 include("blockchain/Blockchain.jl")
 using .Blockchain
@@ -58,27 +59,27 @@ using .Blockchain
 include("dex/DEX.jl")
 using .DEX
 
-include("bridges/Bridges.jl")
+include("bridges/bridges.jl")
 using .Bridges
 
 include("agents/Agents.jl")
 using .Agents
 
-include("agents/TradingAgentSystem.jl")
+include("trading/agents/TradingAgentSystem.jl")
 using .TradingAgentSystem
 
-# Include swarm optimization algorithms
-include("swarm/algorithms/PSO.jl")
-include("swarm/algorithms/GWO.jl")
-include("swarm/algorithms/ACO.jl")
-include("swarm/algorithms/GA.jl")
-include("swarm/algorithms/WOA.jl")
-include("swarm/algorithms/DE.jl")
-include("swarm/algorithms/DEPSO.jl")
-include("swarm/algorithms/FireflyAlgorithm.jl")
-include("swarm/algorithms/BatAlgorithm.jl")
-include("swarm/algorithms/CuckooSearch.jl")
-include("swarm/algorithms/HarmonySearch.jl")
+# Include swarm optimization algorithms (commented out until implemented)
+# include("swarm/algorithms/PSO.jl")
+# include("swarm/algorithms/GWO.jl")
+# include("swarm/algorithms/ACO.jl")
+# include("swarm/algorithms/GA.jl")
+# include("swarm/algorithms/WOA.jl")
+# include("swarm/algorithms/DE.jl")
+# include("swarm/algorithms/DEPSO.jl")
+# include("swarm/algorithms/FireflyAlgorithm.jl")
+# include("swarm/algorithms/BatAlgorithm.jl")
+# include("swarm/algorithms/CuckooSearch.jl")
+# include("swarm/algorithms/HarmonySearch.jl")
 
 include("command_handler.jl")
 using .CommandHandler
