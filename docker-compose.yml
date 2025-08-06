@@ -9,11 +9,15 @@ services:
     container_name: juliaos-server
     ports:
       - "8052:8052"
+      - "8054:8054"  # Metrics endpoint
+      - "8055:8055"  # Trading metrics
+      - "8056:8056"  # Bridge health
+      - "8057:8057"  # DEX metrics
+      - "8058:8058"  # Risk metrics
     volumes:
       - julia-data:/app/data
       - .env:/app/.env:ro
     command: ["julia", "--project=/app/julia", "/app/julia/server/julia_server.jl"]
-    # Add a check to verify file exists
     entrypoint: ["/bin/bash", "-c", "if [ ! -f /app/julia/server/julia_server.jl ]; then echo 'Error: julia_server.jl not found'; ls -la /app/julia/server; exit 1; fi && exec julia --project=/app/julia /app/julia/server/julia_server.jl"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8052/health"]
@@ -24,6 +28,8 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
+    networks:
+      - juliaos-network
 
   juliaos-cli:
     build:
@@ -45,8 +51,166 @@ services:
     stdin_open: true
     tty: true
     command: ["node", "/app/packages/cli/src/interactive.cjs"]
-    # Add a check to verify file exists
     entrypoint: ["/bin/bash", "-c", "if [ ! -f /app/packages/cli/src/interactive.cjs ]; then echo 'Error: interactive.cjs not found'; ls -la /app/packages/cli/src; exit 1; fi && exec node /app/packages/cli/src/interactive.cjs"]
+    networks:
+      - juliaos-network
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - juliaos-network
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123!
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - juliaos-network
+    depends_on:
+      - prometheus
+
+  alertmanager:
+    image: prom/alertmanager:v0.25.0
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config/alertmanager:/etc/alertmanager
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+      - '--cluster.advertise-address=0.0.0.0:9093'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - juliaos-network
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.0
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - juliaos-network
+
+  loki:
+    image: grafana/loki:2.8.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki:/etc/loki
+      - loki-data:/loki
+    command:
+      - '-config.file=/etc/loki/loki.yml'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - juliaos-network
+
+  promtail:
+    image: grafana/promtail:2.8.0
+    container_name: promtail
+    volumes:
+      - ./config/promtail:/etc/promtail
+      - /var/log:/var/log:ro
+      - julia-data:/app/data:ro
+    command:
+      - '-config.file=/etc/promtail/promtail.yml'
+    restart: unless-stopped
+    networks:
+      - juliaos-network
+    depends_on:
+      - loki
+
+  # High-performance Redis for caching and message queues
+  redis:
+    image: redis:7.0-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - juliaos-network
 
 volumes:
   julia-data:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+  loki-data:
+  redis-data:
+
+networks:
+  juliaos-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

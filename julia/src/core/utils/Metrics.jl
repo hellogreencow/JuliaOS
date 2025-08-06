@@ -1,334 +1,490 @@
 module Metrics
 
+export init_metrics, record_trade_execution, record_portfolio_update, record_agent_health
+export record_risk_metric, record_bridge_health, record_dex_trade, get_metrics_snapshot
+
+using HTTP
+using JSON3
 using Dates
 using Statistics
-using JSON
+using Base.Threads
 
-# Default metrics configuration
-const CONFIG = Dict(
-    "metrics" => Dict(
-        "enable_persistence" => false,
-        "metrics_path" => joinpath(homedir(), ".juliaos", "metrics"),
-        "performance_test" => Dict(
-            "duration" => 60,
-            "concurrent_requests" => 10,
-            "request_timeout" => 5
-        )
-    )
+# Metrics storage
+const METRICS_STORE = Dict{String, Any}()
+const METRICS_LOCK = ReentrantLock()
+
+# Prometheus metrics endpoint
+const PROMETHEUS_PORT = 8054
+
+"""
+Initialize the metrics collection system
+"""
+function init_metrics()
+    # Initialize metrics categories
+    lock(METRICS_LOCK) do
+        METRICS_STORE["trading"] = Dict{String, Any}()
+        METRICS_STORE["agents"] = Dict{String, Any}()
+        METRICS_STORE["risk"] = Dict{String, Any}()
+        METRICS_STORE["bridges"] = Dict{String, Any}()
+        METRICS_STORE["dex"] = Dict{String, Any}()
+        METRICS_STORE["system"] = Dict{String, Any}()
+    end
+    
+    # Start metrics server
+    @spawn start_metrics_server()
+    
+    @info "Metrics system initialized on port $PROMETHEUS_PORT"
+end
+
+"""
+Record trade execution metrics
+"""
+function record_trade_execution(
+    agent_id::String,
+    strategy::String,
+    symbol::String,
+    side::String,
+    quantity::Float64,
+    price::Float64,
+    latency_ms::Float64,
+    slippage_pct::Float64,
+    success::Bool
 )
-
-# Global metrics state
-const METRICS_STATE = Ref{Dict{String, Any}}(Dict(
-    "system_metrics" => Dict{String, Any}(),
-    "realtime_metrics" => Dict{String, Any}(),
-    "resource_metrics" => Dict{String, Any}(),
-    "performance_metrics" => Dict{String, Any}()
-))
-
-"""
-Get system overview metrics including CPU, memory, network I/O, and storage usage.
-"""
-function get_system_overview()
-    try
-        # Get CPU usage
-        cpu_usage = round(rand() * 100, digits=2)  # Mock implementation
-
-        # Get memory usage
-        total_memory = Sys.total_memory() / (1024^3)  # Convert to GB
-        free_memory = Sys.free_memory() / (1024^3)    # Convert to GB
-        memory_usage = round((total_memory - free_memory) / total_memory * 100, digits=2)
-
-        # Get network I/O (mock implementation)
-        network_io = "$(rand(100:1000)) MB/s"
-
-        # Get storage usage (mock implementation)
-        storage_usage = round(rand() * 100, digits=2)
-
-        metrics = Dict(
-            "cpu_usage" => cpu_usage,
-            "memory_usage" => memory_usage,
-            "network_io" => network_io,
-            "storage_usage" => storage_usage,
-            "timestamp" => now()
-        )
-
-        METRICS_STATE[]["system_metrics"] = metrics
-
-        # Save metrics if persistence is enabled
-        if CONFIG["metrics"]["enable_persistence"]
-            save_metrics("system_metrics", metrics)
+    timestamp = now()
+    
+    lock(METRICS_LOCK) do
+        if !haskey(METRICS_STORE["trading"], "executions")
+            METRICS_STORE["trading"]["executions"] = []
         end
-
-        return metrics
-    catch e
-        @error "Error getting system overview" exception=(e, catch_backtrace())
-        return Dict(
-            "error" => "Failed to get system overview: $(string(e))"
-        )
-    end
-end
-
-"""
-Get realtime metrics about active agents, swarms, operations per second, and response time.
-"""
-function get_realtime_metrics()
-    try
-        # Get active agents and swarms (mock implementation)
-        active_agents = rand(1:10)
-        active_swarms = rand(1:5)
-
-        # Get operations per second (mock implementation)
-        operations_per_second = rand(100:1000)
-
-        # Get average response time (mock implementation)
-        avg_response_time = rand(10:100)
-
-        metrics = Dict(
-            "active_agents" => active_agents,
-            "active_swarms" => active_swarms,
-            "operations_per_second" => operations_per_second,
-            "avg_response_time" => avg_response_time,
-            "timestamp" => now()
-        )
-
-        METRICS_STATE[]["realtime_metrics"] = metrics
-
-        # Save metrics if persistence is enabled
-        if CONFIG["metrics"]["enable_persistence"]
-            save_metrics("realtime_metrics", metrics)
-        end
-
-        return metrics
-    catch e
-        @error "Error getting realtime metrics" exception=(e, catch_backtrace())
-        return Dict(
-            "error" => "Failed to get realtime metrics: $(string(e))"
-        )
-    end
-end
-
-"""
-Get resource usage metrics including memory allocation, thread count, open files, and network connections.
-"""
-function get_resource_usage()
-    try
-        # Get memory allocation (mock implementation)
-        memory_allocation = "$(rand(1:8))GB"
-
-        # Get thread count
-        thread_count = Threads.nthreads()
-
-        # Get open files and network connections (mock implementation)
-        open_files = rand(10:100)
-        network_connections = rand(5:50)
-
-        metrics = Dict(
-            "memory_allocation" => memory_allocation,
-            "thread_count" => thread_count,
-            "open_files" => open_files,
-            "network_connections" => network_connections,
-            "timestamp" => now()
-        )
-
-        METRICS_STATE[]["resource_metrics"] = metrics
-
-        # Save metrics if persistence is enabled
-        if CONFIG["metrics"]["enable_persistence"]
-            save_metrics("resource_metrics", metrics)
-        end
-
-        return metrics
-    catch e
-        @error "Error getting resource usage" exception=(e, catch_backtrace())
-        return Dict(
-            "error" => "Failed to get resource usage: $(string(e))"
-        )
-    end
-end
-
-"""
-Run a performance test and return metrics like latency, throughput, error rate, and success rate.
-"""
-function run_performance_test()
-    try
-        # Get performance test configuration
-        duration = CONFIG["metrics"]["performance_test"]["duration"]
-        concurrent_requests = CONFIG["metrics"]["performance_test"]["concurrent_requests"]
-        request_timeout = CONFIG["metrics"]["performance_test"]["request_timeout"]
-
-        # Run mock performance test
-        latency = rand(10:100)
-        throughput = rand(1000:5000)
-        error_rate = round(rand() * 10, digits=2)
-        success_rate = round(100 - error_rate, digits=2)
-
-        metrics = Dict(
-            "latency" => latency,
-            "throughput" => throughput,
-            "error_rate" => error_rate,
-            "success_rate" => success_rate,
-            "timestamp" => now(),
-            "test_config" => Dict(
-                "duration" => duration,
-                "concurrent_requests" => concurrent_requests,
-                "request_timeout" => request_timeout
-            )
-        )
-
-        METRICS_STATE[]["performance_metrics"] = metrics
-
-        # Save metrics if persistence is enabled
-        if CONFIG["metrics"]["enable_persistence"]
-            save_metrics("performance_metrics", metrics)
-        end
-
-        return metrics
-    catch e
-        @error "Error running performance test" exception=(e, catch_backtrace())
-        return Dict(
-            "error" => "Failed to run performance test: $(string(e))"
-        )
-    end
-end
-
-"""
-Save metrics to a file.
-"""
-function save_metrics(metric_type::String, metrics::Dict)
-    try
-        # Create metrics directory if it doesn't exist
-        metrics_dir = CONFIG["metrics"]["metrics_path"]
-        if !isdir(metrics_dir)
-            mkpath(metrics_dir)
-        end
-
-        # Save metrics to file
-        filename = joinpath(metrics_dir, "$(metric_type)_$(Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")).json")
-        open(filename, "w") do io
-            JSON.print(io, metrics)
-        end
-    catch e
-        @error "Error saving metrics" exception=(e, catch_backtrace())
-    end
-end
-
-"""
-Get metrics for a specific agent.
-"""
-function get_agent_metrics(agent_id::String)
-    try
-        # Mock implementation
-        metrics = Dict(
+        
+        push!(METRICS_STORE["trading"]["executions"], Dict(
+            "timestamp" => timestamp,
             "agent_id" => agent_id,
-            "cpu_usage" => round(rand() * 100, digits=2),
-            "memory_usage" => round(rand() * 1024, digits=2),  # MB
-            "tasks_completed" => rand(10:100),
-            "tasks_pending" => rand(0:10),
-            "uptime" => "$(rand(1:24)) hours",
-            "status" => rand(["active", "idle", "busy"]),
-            "timestamp" => now()
-        )
-
-        return metrics
-    catch e
-        @error "Error getting agent metrics" exception=(e, catch_backtrace())
-        return Dict(
-            "error" => "Failed to get agent metrics: $(string(e))"
-        )
+            "strategy" => strategy,
+            "symbol" => symbol,
+            "side" => side,
+            "quantity" => quantity,
+            "price" => price,
+            "latency_ms" => latency_ms,
+            "slippage_pct" => slippage_pct,
+            "success" => success,
+            "value_usd" => quantity * price
+        ))
+        
+        # Update aggregated metrics
+        update_trading_aggregates()
     end
 end
 
 """
-Get metrics for a specific swarm.
+Record portfolio updates
 """
-function get_swarm_metrics(swarm_id::String)
-    try
-        # Mock implementation
-        metrics = Dict(
-            "swarm_id" => swarm_id,
-            "agent_count" => rand(3:10),
-            "cpu_usage" => round(rand() * 100, digits=2),
-            "memory_usage" => round(rand() * 4096, digits=2),  # MB
-            "tasks_completed" => rand(50:500),
-            "tasks_pending" => rand(0:20),
-            "uptime" => "$(rand(1:48)) hours",
-            "status" => rand(["active", "idle", "busy"]),
-            "timestamp" => now()
-        )
-
-        return metrics
-    catch e
-        @error "Error getting swarm metrics" exception=(e, catch_backtrace())
-        return Dict(
-            "error" => "Failed to get swarm metrics: $(string(e))"
-        )
+function record_portfolio_update(
+    total_value_usd::Float64,
+    pnl_usd::Float64,
+    positions::Dict{String, Any}
+)
+    timestamp = now()
+    
+    lock(METRICS_LOCK) do
+        if !haskey(METRICS_STORE["trading"], "portfolio")
+            METRICS_STORE["trading"]["portfolio"] = []
+        end
+        
+        push!(METRICS_STORE["trading"]["portfolio"], Dict(
+            "timestamp" => timestamp,
+            "total_value_usd" => total_value_usd,
+            "pnl_usd" => pnl_usd,
+            "position_count" => length(positions),
+            "positions" => positions
+        ))
+        
+        # Update portfolio metrics
+        update_portfolio_metrics(total_value_usd, pnl_usd)
     end
 end
 
 """
-Get historical metrics for the specified type and time range.
+Record agent health metrics
 """
-function get_historical_metrics(metric_type::String, start_time::String, end_time::String)
-    try
-        # Parse start and end times
-        start_dt = DateTime(start_time)
-        end_dt = DateTime(end_time)
+function record_agent_health(
+    agent_id::String,
+    status::String,
+    memory_usage_mb::Float64,
+    cpu_usage_pct::Float64,
+    task_queue_length::Int,
+    last_activity::DateTime
+)
+    timestamp = now()
+    
+    lock(METRICS_LOCK) do
+        if !haskey(METRICS_STORE["agents"], agent_id)
+            METRICS_STORE["agents"][agent_id] = []
+        end
+        
+        push!(METRICS_STORE["agents"][agent_id], Dict(
+            "timestamp" => timestamp,
+            "status" => status,
+            "memory_usage_mb" => memory_usage_mb,
+            "cpu_usage_pct" => cpu_usage_pct,
+            "task_queue_length" => task_queue_length,
+            "last_activity" => last_activity,
+            "uptime_seconds" => (timestamp - last_activity).value / 1000
+        ))
+        
+        # Keep only last 1000 entries per agent
+        if length(METRICS_STORE["agents"][agent_id]) > 1000
+            splice!(METRICS_STORE["agents"][agent_id], 1:100)
+        end
+    end
+end
 
-        # Calculate duration in hours
-        duration_hours = Dates.value(end_dt - start_dt) / 1000 / 60 / 60
+"""
+Record risk metrics
+"""
+function record_risk_metric(
+    metric_name::String,
+    value::Float64,
+    threshold::Float64,
+    alert_level::String
+)
+    timestamp = now()
+    
+    lock(METRICS_LOCK) do
+        if !haskey(METRICS_STORE["risk"], metric_name)
+            METRICS_STORE["risk"][metric_name] = []
+        end
+        
+        push!(METRICS_STORE["risk"][metric_name], Dict(
+            "timestamp" => timestamp,
+            "value" => value,
+            "threshold" => threshold,
+            "alert_level" => alert_level,
+            "breach" => value > threshold
+        ))
+        
+        # Keep only last 10000 entries per metric
+        if length(METRICS_STORE["risk"][metric_name]) > 10000
+            splice!(METRICS_STORE["risk"][metric_name], 1:1000)
+        end
+    end
+end
 
-        # Generate data points (one per hour)
-        data_points = []
-        for i in 0:floor(Int, duration_hours)
-            timestamp = start_dt + Dates.Hour(i)
+"""
+Record bridge health metrics
+"""
+function record_bridge_health(
+    bridge_name::String,
+    status::String,
+    response_time_ms::Float64,
+    error_count::Int,
+    success_rate::Float64
+)
+    timestamp = now()
+    
+    lock(METRICS_LOCK) do
+        if !haskey(METRICS_STORE["bridges"], bridge_name)
+            METRICS_STORE["bridges"][bridge_name] = []
+        end
+        
+        push!(METRICS_STORE["bridges"][bridge_name], Dict(
+            "timestamp" => timestamp,
+            "status" => status,
+            "response_time_ms" => response_time_ms,
+            "error_count" => error_count,
+            "success_rate" => success_rate,
+            "healthy" => status == "healthy" && response_time_ms < 5000
+        ))
+    end
+end
 
-            if metric_type == "system"
-                push!(data_points, Dict(
-                    "timestamp" => string(timestamp),
-                    "cpu_usage" => round(rand() * 100, digits=2),
-                    "memory_usage" => round(rand() * 100, digits=2),
-                    "active_agents" => rand(1:10),
-                    "active_swarms" => rand(1:5)
-                ))
-            elseif metric_type == "agent"
-                push!(data_points, Dict(
-                    "timestamp" => string(timestamp),
-                    "cpu_usage" => round(rand() * 100, digits=2),
-                    "memory_usage" => round(rand() * 1024, digits=2),
-                    "tasks_completed" => rand(1:20)
-                ))
-            elseif metric_type == "swarm"
-                push!(data_points, Dict(
-                    "timestamp" => string(timestamp),
-                    "cpu_usage" => round(rand() * 100, digits=2),
-                    "memory_usage" => round(rand() * 4096, digits=2),
-                    "tasks_completed" => rand(10:100),
-                    "agent_count" => rand(3:10)
-                ))
-            else
-                push!(data_points, Dict(
-                    "timestamp" => string(timestamp),
-                    "value" => round(rand() * 100, digits=2)
-                ))
+"""
+Record DEX trade metrics
+"""
+function record_dex_trade(
+    dex_name::String,
+    pair::String,
+    volume_usd::Float64,
+    fee_usd::Float64,
+    slippage_pct::Float64,
+    success::Bool
+)
+    timestamp = now()
+    
+    lock(METRICS_LOCK) do
+        if !haskey(METRICS_STORE["dex"], dex_name)
+            METRICS_STORE["dex"][dex_name] = []
+        end
+        
+        push!(METRICS_STORE["dex"][dex_name], Dict(
+            "timestamp" => timestamp,
+            "pair" => pair,
+            "volume_usd" => volume_usd,
+            "fee_usd" => fee_usd,
+            "slippage_pct" => slippage_pct,
+            "success" => success
+        ))
+    end
+end
+
+"""
+Update trading aggregate metrics
+"""
+function update_trading_aggregates()
+    executions = METRICS_STORE["trading"]["executions"]
+    if isempty(executions)
+        return
+    end
+    
+    # Calculate recent performance (last 1000 trades)
+    recent_trades = executions[max(1, end-999):end]
+    
+    # Win rate calculation
+    successful_trades = count(t -> t["success"], recent_trades)
+    win_rate = successful_trades / length(recent_trades)
+    
+    # Average latency
+    avg_latency = mean(t -> t["latency_ms"], recent_trades)
+    p99_latency = quantile([t["latency_ms"] for t in recent_trades], 0.99)
+    
+    # Total volume
+    total_volume = sum(t -> t["value_usd"], recent_trades)
+    
+    # Update metrics
+    METRICS_STORE["trading"]["win_rate"] = win_rate
+    METRICS_STORE["trading"]["avg_latency_ms"] = avg_latency
+    METRICS_STORE["trading"]["p99_latency_ms"] = p99_latency
+    METRICS_STORE["trading"]["total_volume_usd"] = total_volume
+end
+
+"""
+Update portfolio metrics
+"""
+function update_portfolio_metrics(current_value::Float64, current_pnl::Float64)
+    portfolio_history = METRICS_STORE["trading"]["portfolio"]
+    if length(portfolio_history) < 2
+        return
+    end
+    
+    # Calculate drawdown
+    peak_value = maximum(p -> p["total_value_usd"], portfolio_history)
+    drawdown_pct = ((peak_value - current_value) / peak_value) * 100
+    
+    # Calculate Sharpe ratio (simplified)
+    returns = []
+    for i in 2:length(portfolio_history)
+        prev_val = portfolio_history[i-1]["total_value_usd"]
+        curr_val = portfolio_history[i]["total_value_usd"]
+        if prev_val > 0
+            push!(returns, (curr_val - prev_val) / prev_val)
+        end
+    end
+    
+    if !isempty(returns)
+        mean_return = mean(returns)
+        std_return = std(returns)
+        sharpe_ratio = std_return > 0 ? mean_return / std_return : 0.0
+        
+        METRICS_STORE["trading"]["sharpe_ratio"] = sharpe_ratio
+    end
+    
+    METRICS_STORE["trading"]["drawdown_pct"] = drawdown_pct
+    METRICS_STORE["trading"]["current_value_usd"] = current_value
+    METRICS_STORE["trading"]["current_pnl_usd"] = current_pnl
+end
+
+"""
+Start metrics HTTP server for Prometheus scraping
+"""
+function start_metrics_server()
+    server = HTTP.serve("0.0.0.0", PROMETHEUS_PORT) do request::HTTP.Request
+        if request.target == "/metrics"
+            return HTTP.Response(200, export_prometheus_metrics())
+        elseif request.target == "/agent-metrics"
+            return HTTP.Response(200, export_agent_metrics())
+        elseif request.target == "/trading-metrics"
+            return HTTP.Response(200, export_trading_metrics())
+        elseif request.target == "/risk-metrics"
+            return HTTP.Response(200, export_risk_metrics())
+        elseif request.target == "/bridge-health"
+            return HTTP.Response(200, export_bridge_metrics())
+        elseif request.target == "/dex-metrics"
+            return HTTP.Response(200, export_dex_metrics())
+        else
+            return HTTP.Response(404, "Not Found")
+        end
+    end
+    
+    @info "Metrics server started on port $PROMETHEUS_PORT"
+end
+
+"""
+Export metrics in Prometheus format
+"""
+function export_prometheus_metrics()
+    lock(METRICS_LOCK) do
+        metrics = String[]
+        
+        # Trading metrics
+        if haskey(METRICS_STORE["trading"], "win_rate")
+            push!(metrics, "# TYPE trading_strategy_win_rate gauge")
+            push!(metrics, "trading_strategy_win_rate $(METRICS_STORE["trading"]["win_rate"])")
+        end
+        
+        if haskey(METRICS_STORE["trading"], "avg_latency_ms")
+            push!(metrics, "# TYPE trading_execution_latency_seconds histogram")
+            latency_sec = METRICS_STORE["trading"]["avg_latency_ms"] / 1000
+            push!(metrics, "trading_execution_latency_seconds{quantile=\"0.50\"} $latency_sec")
+        end
+        
+        if haskey(METRICS_STORE["trading"], "p99_latency_ms")
+            latency_sec = METRICS_STORE["trading"]["p99_latency_ms"] / 1000
+            push!(metrics, "trading_execution_latency_seconds{quantile=\"0.99\"} $latency_sec")
+        end
+        
+        if haskey(METRICS_STORE["trading"], "sharpe_ratio")
+            push!(metrics, "# TYPE trading_portfolio_sharpe_ratio gauge")
+            push!(metrics, "trading_portfolio_sharpe_ratio $(METRICS_STORE["trading"]["sharpe_ratio"])")
+        end
+        
+        if haskey(METRICS_STORE["trading"], "drawdown_pct")
+            push!(metrics, "# TYPE trading_portfolio_drawdown_pct gauge")
+            push!(metrics, "trading_portfolio_drawdown_pct $(METRICS_STORE["trading"]["drawdown_pct"])")
+        end
+        
+        if haskey(METRICS_STORE["trading"], "current_value_usd")
+            push!(metrics, "# TYPE trading_portfolio_value_usd gauge")
+            push!(metrics, "trading_portfolio_value_usd $(METRICS_STORE["trading"]["current_value_usd"])")
+        end
+        
+        if haskey(METRICS_STORE["trading"], "current_pnl_usd")
+            push!(metrics, "# TYPE trading_portfolio_pnl_total gauge")
+            push!(metrics, "trading_portfolio_pnl_total $(METRICS_STORE["trading"]["current_pnl_usd"])")
+        end
+        
+        return join(metrics, "\n")
+    end
+end
+
+"""
+Export agent-specific metrics
+"""
+function export_agent_metrics()
+    lock(METRICS_LOCK) do
+        metrics = String[]
+        
+        push!(metrics, "# TYPE up gauge")
+        for (agent_id, history) in METRICS_STORE["agents"]
+            if !isempty(history)
+                latest = history[end]
+                status_val = latest["status"] == "RUNNING" ? 1 : 0
+                push!(metrics, "up{job=\"trading-agents\",agent_id=\"$agent_id\"} $status_val")
+                
+                push!(metrics, "# TYPE agent_memory_usage_bytes gauge")
+                memory_bytes = latest["memory_usage_mb"] * 1024 * 1024
+                push!(metrics, "agent_memory_usage_bytes{agent_id=\"$agent_id\"} $memory_bytes")
+                
+                push!(metrics, "# TYPE agent_cpu_usage_seconds_total counter")
+                cpu_usage = latest["cpu_usage_pct"] / 100
+                push!(metrics, "agent_cpu_usage_seconds_total{agent_id=\"$agent_id\"} $cpu_usage")
+                
+                push!(metrics, "# TYPE agent_task_queue_length gauge")
+                push!(metrics, "agent_task_queue_length{agent_id=\"$agent_id\"} $(latest["task_queue_length"])")
             end
         end
-
-        return Dict(
-            "metric_type" => metric_type,
-            "start_time" => start_time,
-            "end_time" => end_time,
-            "data_points" => data_points
-        )
-    catch e
-        @error "Error getting historical metrics" exception=(e, catch_backtrace())
-        return Dict(
-            "error" => "Failed to get historical metrics: $(string(e))"
-        )
+        
+        return join(metrics, "\n")
     end
 end
 
-# Export functions
-export get_system_overview, get_realtime_metrics, get_resource_usage, run_performance_test,
-       get_agent_metrics, get_swarm_metrics, get_historical_metrics
+"""
+Export trading-specific metrics
+"""
+function export_trading_metrics()
+    return export_prometheus_metrics()
+end
+
+"""
+Export risk metrics
+"""
+function export_risk_metrics()
+    lock(METRICS_LOCK) do
+        metrics = String[]
+        
+        for (metric_name, history) in METRICS_STORE["risk"]
+            if !isempty(history)
+                latest = history[end]
+                safe_name = replace(metric_name, "-" => "_")
+                push!(metrics, "# TYPE risk_$safe_name gauge")
+                push!(metrics, "risk_$safe_name $(latest["value"])")
+            end
+        end
+        
+        return join(metrics, "\n")
+    end
+end
+
+"""
+Export bridge health metrics
+"""
+function export_bridge_metrics()
+    lock(METRICS_LOCK) do
+        metrics = String[]
+        
+        push!(metrics, "# TYPE bridge_health_status gauge")
+        push!(metrics, "# TYPE bridge_response_time_seconds gauge")
+        
+        for (bridge_name, history) in METRICS_STORE["bridges"]
+            if !isempty(history)
+                latest = history[end]
+                status_val = latest["healthy"] ? 1 : 0
+                response_time_sec = latest["response_time_ms"] / 1000
+                
+                push!(metrics, "bridge_health_status{bridge_name=\"$bridge_name\"} $status_val")
+                push!(metrics, "bridge_response_time_seconds{bridge_name=\"$bridge_name\"} $response_time_sec")
+            end
+        end
+        
+        return join(metrics, "\n")
+    end
+end
+
+"""
+Export DEX metrics
+"""
+function export_dex_metrics()
+    lock(METRICS_LOCK) do
+        metrics = String[]
+        
+        push!(metrics, "# TYPE dex_connection_status gauge")
+        push!(metrics, "# TYPE dex_trade_volume_usd_total counter")
+        push!(metrics, "# TYPE dex_trade_slippage_pct gauge")
+        
+        for (dex_name, history) in METRICS_STORE["dex"]
+            if !isempty(history)
+                # Calculate aggregates
+                recent_trades = history[max(1, end-99):end]  # Last 100 trades
+                total_volume = sum(t -> t["volume_usd"], recent_trades)
+                avg_slippage = mean(t -> t["slippage_pct"], recent_trades)
+                connection_status = any(t -> t["success"], recent_trades) ? 1 : 0
+                
+                push!(metrics, "dex_connection_status{dex_name=\"$dex_name\"} $connection_status")
+                push!(metrics, "dex_trade_volume_usd_total{dex_name=\"$dex_name\"} $total_volume")
+                push!(metrics, "dex_trade_slippage_pct{dex_name=\"$dex_name\"} $avg_slippage")
+            end
+        end
+        
+        return join(metrics, "\n")
+    end
+end
+
+"""
+Get current metrics snapshot
+"""
+function get_metrics_snapshot()
+    lock(METRICS_LOCK) do
+        return deepcopy(METRICS_STORE)
+    end
+end
 
 end # module
