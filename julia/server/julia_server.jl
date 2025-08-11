@@ -237,6 +237,39 @@ try
             return HTTP.Response(200, ["Content-Type" => "application/json"], JSON.json(metrics))
         end)
 
+        # Add a Prometheus /metrics endpoint (basic JSON -> text exposition)
+        HTTP.register!(router, "GET", "/metrics", function(req)
+            uptime_seconds = Dates.value(now() - GLOBAL_STATE["server_start_time"]) / 1000
+            requests = get(GLOBAL_STATE, "requests_handled", 0)
+            body = """
+# HELP juliaos_uptime_seconds Server uptime in seconds
+# TYPE juliaos_uptime_seconds gauge
+juliaos_uptime_seconds $(uptime_seconds)
+# HELP juliaos_requests_total Total requests handled
+# TYPE juliaos_requests_total counter
+juliaos_requests_total $(requests)
+"""
+            return HTTP.Response(200, ["Content-Type" => "text/plain; version=0.0.4"], body)
+        end)
+
+        # Expose current trading mode for Phase 0 proof
+        HTTP.register!(router, "GET", "/api/mode", function(req)
+            mode = try
+                # Try JuliaOS.TradingModes first if included
+                if isdefined(JuliaOS, :TradingModes)
+                    JuliaOS.TradingModes.current_mode()
+                elseif Base.find_package("TradingModes") !== nothing
+                    # Fallback if module is separately loaded
+                    TradingModes.current_mode()
+                else
+                    get(ENV, "TRADING_MODE", "paper")
+                end
+            catch
+                get(ENV, "TRADING_MODE", "paper")
+            end
+            return HTTP.Response(200, ["Content-Type" => "application/json"], JSON.json(Dict("mode" => mode)))
+        end)
+
         # Add an API endpoint
         HTTP.register!(router, "POST", "/api", function(req)
             try

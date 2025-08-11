@@ -1,0 +1,20 @@
+groups:
+  - name: trading_alerts
+    rules:
+      - alert: JuliaOSDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Prometheus target down'
+          description: 'A monitored target has been down for >1m.'
+
+      - alert: HighP99Latency
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'High p99 request latency'
+          description: 'p99 latency has exceeded 1s for the last 5m.'
