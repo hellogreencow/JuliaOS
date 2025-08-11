@@ -1,0 +1,20 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "trading-metrics",
+    "title": "Trading Metrics",
+    "timezone": "browser",
+    "panels": [
+      {
+        "type": "stat",
+        "title": "Prometheus Up",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "targets": [{ "expr": "up" }],
+        "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 }
+      }
+    ],
+    "schemaVersion": 38,
+    "version": 1
+  },
+  "overwrite": true
+}

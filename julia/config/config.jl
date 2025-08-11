@@ -2,6 +2,18 @@ module Config
 
 export load, get_value
 
+using TOML
+
+struct ServerConfig
+    host::String
+    port::Int
+end
+
+struct AppConfig
+    server::ServerConfig
+    storage::Dict{String,Any}
+end
+
 # Default configuration
 const DEFAULT_CONFIG = Dict(
     "server" => Dict(
@@ -107,35 +119,12 @@ end
 Load configuration from environment variables and optionally from a TOML file.
 Environment variables take precedence over file configuration.
 """
-function load(config_path=nothing)
-    # Start with default configuration
-    config_data = deepcopy(DEFAULT_CONFIG)
-
-    # Load from file if provided
-    if !isnothing(config_path) && isfile(config_path)
-        try
-            file_config = Dict{String, Any}()
-            # In a real implementation, you would use TOML.parsefile here
-            # For now, we'll just use the default config
-            merge_configs!(config_data, file_config)
-        catch e
-            @warn "Error loading configuration file: $e"
-        end
-    elseif isfile(joinpath(@__DIR__, "config.toml"))
-        try
-            file_config = Dict{String, Any}()
-            # In a real implementation, you would use TOML.parsefile here
-            # For now, we'll just use the default config
-            merge_configs!(config_data, file_config)
-        catch e
-            @warn "Error loading default configuration file: $e"
-        end
-    end
-
-    # Override with environment variables
-    override_from_env!(config_data)
-
-    return Configuration(config_data)
+function load()
+    host = get(ENV, "JULIA_SERVER_HOST", "0.0.0.0")
+    port = parse(Int, get(ENV, "JULIA_SERVER_PORT", "8052"))
+    server = ServerConfig(host, port)
+    storage = Dict{String,Any}("local_db_path" => get(ENV, "DB_PATH", joinpath(homedir(), ".juliaos", "juliaos.sqlite")))
+    return AppConfig(server, storage)
 end
 
 """
